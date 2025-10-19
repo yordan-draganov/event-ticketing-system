@@ -84,6 +84,25 @@ CREATE INDEX idx_reviews_event_id ON reviews(event_id);
 CREATE INDEX idx_reviews_user_id ON reviews(user_id);
 CREATE INDEX idx_reviews_rating ON reviews(rating);
 
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 INSERT INTO events (title, date, location, description, long_description, price, category, image, organizer, start_time, end_time, available_tickets, total_tickets) VALUES
 ('Summer Music Festival', '2025-06-21', 'Central Park, NYC', 'A full-day event with live performances by top artists.', 'Join us for an incredible day of music and fun at Central Park! The Summer Music Festival brings together the best artists from around the world for a day you won''t forget. Enjoy food vendors, art installations, and of course, amazing musical performances across three stages. Early arrival is recommended as space is limited.', 49.99, 'Music', '/api/placeholder/800/400', 'NYC Events Co.', '11:00:00', '22:00:00', 3, 3),
