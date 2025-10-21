@@ -3,10 +3,13 @@ package com.example.events.service;
 import com.example.events.model.User;
 import com.example.events.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
+@Transactional
 public class UserService {
 
     private final UserRepository userRepository;
@@ -19,25 +22,16 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User getById(Long id) {
+    public User getById(UUID id) {
         return userRepository.findById(id).orElse(null);
     }
 
     public User create(User user) {
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
         return userRepository.save(user);
     }
 
-    public User update(Long id, User user) {
-        User existing = userRepository.findById(id).orElse(null);
-        if (existing == null) return null;
 
-        existing.setName(user.getName());
-        existing.setEmail(user.getEmail());
-        return userRepository.save(existing);
-    }
-
-    public void delete(Long id) {
-        userRepository.deleteById(id);
-    }
 }
-
