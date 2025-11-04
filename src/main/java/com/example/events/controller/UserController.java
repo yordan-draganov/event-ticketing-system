@@ -1,13 +1,12 @@
 package com.example.events.controller;
 
-import com.example.events.DTO.UserDTO;
-import com.example.events.exception.UserAlreadyLoggedOutException;
+import com.example.events.DTO.*;
 import com.example.events.exception.UserExistsException;
 import com.example.events.exception.UserNotFoundException;
-import com.example.events.model.User;
 import com.example.events.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,53 +23,81 @@ public class UserController {
         this.userService = userService;
     }
 
+
     @PostMapping("/signup")
-    public ResponseEntity<String> createUser(@RequestBody User user) throws UserExistsException {
-        userService.signUp(user);
-        return ResponseEntity.ok("User registered successfully");
+    public ResponseEntity<AuthResponse> signUp(@RequestBody SignupRequest request) throws UserExistsException {
+        AuthResponse response = userService.signUp(request);
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/login")
-    public ResponseEntity<String> logUser(@RequestBody User user, HttpServletRequest request) throws UserNotFoundException {
-        return userService.login(user, request);
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) throws UserNotFoundException {
+        AuthResponse response = userService.login(request);
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/logout")
-    public ResponseEntity<String> logOutUser(HttpServletRequest request) throws UserAlreadyLoggedOutException {
-        return userService.logout(request);
-    }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteUser(@RequestBody String name, HttpServletRequest request) throws
-            UserAlreadyLoggedOutException, UserNotFoundException {
-        return userService.delete(name, request);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> deleteUser(HttpServletRequest request) throws UserNotFoundException {
+        String message = userService.deleteUser(request);
+        return ResponseEntity.ok(message);
     }
+
 
     @PatchMapping("/pass")
-    public ResponseEntity<String> changePassword(@RequestBody String password, HttpServletRequest request)
-            throws UserAlreadyLoggedOutException {
-        return userService.changePassword(password, request);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) throws UserNotFoundException {
+        String message = userService.changePassword(request.getNewPassword(), httpRequest);
+        return ResponseEntity.ok(message);
     }
+
 
     @PatchMapping("/name")
-    public ResponseEntity<String> changeName(@RequestBody String name, HttpServletRequest request)
-            throws UserAlreadyLoggedOutException, UserExistsException {
-        return userService.changeName(name, request);
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AuthResponse> changeName(@RequestBody ChangeNameRequest request,
+                                                   HttpServletRequest httpRequest)
+            throws UserExistsException, UserNotFoundException {
+        AuthResponse response = userService.changeName(request.getNewName(), httpRequest);
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/type/{name}")
+
+    @GetMapping("/role/{name}")
     public ResponseEntity<String> getUserRole(@PathVariable String name) throws UserNotFoundException {
-        return ResponseEntity.ok(userService.getUserRole(name));
+        String role = userService.getUserRole(name);
+        return ResponseEntity.ok(role);
     }
 
-    @PostMapping("/")
-    public ResponseEntity<UserDTO> getUserById(@RequestBody String idStr) throws UserNotFoundException {
-        UUID id = UUID.fromString(idStr.trim());
-        return ResponseEntity.ok(userService.getUserById(id));
+
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) throws UserNotFoundException {
+        UserDTO user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
+
 
     @GetMapping("/all")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+        List<UserDTO> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
+    }
+
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDTO> getCurrentUser(HttpServletRequest request) throws UserNotFoundException {
+        String userName = (String) request.getAttribute("userName");
+        if (userName == null) {
+            throw new UserNotFoundException("User not authenticated");
+        }
+
+        String userIdStr = (String) request.getAttribute("userId");
+        UUID userId = UUID.fromString(userIdStr);
+        UserDTO user = userService.getUserById(userId);
+        return ResponseEntity.ok(user);
     }
 }
