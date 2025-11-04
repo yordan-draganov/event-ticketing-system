@@ -1,15 +1,19 @@
 package com.example.events.service;
 
+import com.example.events.DTO.AuthResponse;
+import com.example.events.DTO.LoginRequest;
+import com.example.events.DTO.SignupRequest;
 import com.example.events.DTO.UserDTO;
-import com.example.events.exception.UserAlreadyLoggedOutException;
 import com.example.events.exception.UserExistsException;
 import com.example.events.exception.UserNotFoundException;
 import com.example.events.model.User;
 import com.example.events.model.UserRole;
 import com.example.events.repository.UserRepository;
+import com.example.events.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.http.ResponseEntity;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,95 +26,129 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder();
     }
 
-    public void signUp(User user) throws UserExistsException {
-        if (userRepository.existsByName(user.getName())) {
-            throw new UserExistsException("User with name " + user.getName() + " already exists");
-        }
-
-        if (user.getRole() == null) {
-            user.setRole(UserRole.user);
-        }
-
-        userRepository.save(user);
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
-    public ResponseEntity<String> login(User user, HttpServletRequest request) throws UserNotFoundException {
-        User existingUser = userRepository.findByName(user.getName())
-                .orElseThrow(() -> new UserNotFoundException("User not found with name: " + user.getName()));
+    public AuthResponse signUp(SignupRequest request) throws UserExistsException {
+        if (userRepository.existsByName(request.getName())) {
+            throw new UserExistsException("User with name " + request.getName() + " already exists");
+        }
 
-        if (!existingUser.getPassword().equals(user.getPassword())) {
+        UserRole role = request.getRole() != null ? request.getRole() : UserRole.user;
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .name(request.getName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(role)
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        String token = jwtUtil.generateToken(
+                savedUser.getId(),
+                savedUser.getName(),
+                savedUser.getRole().name()
+        );
+
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(savedUser.getId())
+                .name(savedUser.getName())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole())
+                .message("User registered successfully")
+                .build();
+    }
+
+    public AuthResponse login(LoginRequest request) throws UserNotFoundException {
+        User user = userRepository.findByName(request.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found with name: " + request.getName()));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserNotFoundException("Invalid credentials");
         }
 
-        HttpSession session = request.getSession(true);
-        session.setAttribute("userId", existingUser.getId().toString());
-        session.setAttribute("userName", existingUser.getName());
-        session.setAttribute("userRole", existingUser.getRole().toString());
+        String token = jwtUtil.generateToken(
+                user.getId(),
+                user.getName(),
+                user.getRole().name()
+        );
 
-        return ResponseEntity.ok("Login successful. Welcome " + existingUser.getName());
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .message("Login successful. Welcome " + user.getName())
+                .build();
     }
 
-    public ResponseEntity<String> logout(HttpServletRequest request) throws UserAlreadyLoggedOutException {
-        HttpSession session = request.getSession(false);
+    public String deleteUser(HttpServletRequest request) throws UserNotFoundException {
+        String userName = (String) request.getAttribute("userName");
 
-        if (session == null || session.getAttribute("userId") == null) {
-            throw new UserAlreadyLoggedOutException("User is already logged out");
+        if (userName == null) {
+            throw new UserNotFoundException("User not authenticated");
         }
 
-        session.invalidate();
-        return ResponseEntity.ok("Logout successful");
-    }
-
-    public ResponseEntity<String> delete(String name, HttpServletRequest request)
-            throws UserAlreadyLoggedOutException, UserNotFoundException {
-
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("userId") == null) {
-            throw new UserAlreadyLoggedOutException("You must be logged in to delete account");
-        }
-
-        User user = userRepository.findByName(name.trim())
-                .orElseThrow(() -> new UserNotFoundException("User not found with name: " + name));
+        User user = userRepository.findByName(userName)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         userRepository.delete(user);
-        session.invalidate();
-
-        return ResponseEntity.ok("User deleted successfully");
+        return "User deleted successfully";
     }
 
-    public ResponseEntity<String> changePassword(String password, HttpServletRequest request)
-            throws UserAlreadyLoggedOutException {
+    public String changePassword(String newPassword, HttpServletRequest request)
+            throws UserNotFoundException {
 
-        User user = getLoggedInUser(request);
-        user.setPassword(password.trim());
+        User user = getAuthenticatedUser(request);
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        return ResponseEntity.ok("Password changed successfully");
+        return "Password changed successfully";
     }
 
-    public ResponseEntity<String> changeName(String name, HttpServletRequest request)
-            throws UserAlreadyLoggedOutException, UserExistsException {
+    public AuthResponse changeName(String newName, HttpServletRequest request)
+            throws UserExistsException, UserNotFoundException {
 
-        User user = getLoggedInUser(request);
+        User user = getAuthenticatedUser(request);
 
-        if (userRepository.existsByName(name.trim()) && !user.getName().equals(name.trim())) {
-            throw new UserExistsException("Name " + name + " is already taken");
+        if (userRepository.existsByName(newName) && !user.getName().equals(newName)) {
+            throw new UserExistsException("Name " + newName + " is already taken");
         }
 
-        user.setName(name.trim());
+        user.setName(newName);
         userRepository.save(user);
 
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.setAttribute("userName", name.trim());
-        }
+        String token = jwtUtil.generateToken(
+                user.getId(),
+                user.getName(),
+                user.getRole().name()
+        );
 
-        return ResponseEntity.ok("Name changed successfully to: " + name);
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .message("Name changed successfully to: " + newName)
+                .build();
     }
 
     public String getUserRole(String name) throws UserNotFoundException {
@@ -133,16 +171,15 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    private User getLoggedInUser(HttpServletRequest request) throws UserAlreadyLoggedOutException {
-        HttpSession session = request.getSession(false);
+    private User getAuthenticatedUser(HttpServletRequest request) throws UserNotFoundException {
+        String userName = (String) request.getAttribute("userName");
 
-        if (session == null || session.getAttribute("userId") == null) {
-            throw new UserAlreadyLoggedOutException("You must be logged in to perform this action");
+        if (userName == null) {
+            throw new UserNotFoundException("User not authenticated");
         }
 
-        String userId = (String) session.getAttribute("userId");
-        return userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new RuntimeException("Session user not found"));
+        return userRepository.findByName(userName)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     private UserDTO convertToDTO(User user) {
