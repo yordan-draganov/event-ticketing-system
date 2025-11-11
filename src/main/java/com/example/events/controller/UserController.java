@@ -5,6 +5,7 @@ import com.example.events.exception.UserExistsException;
 import com.example.events.exception.UserNotFoundException;
 import com.example.events.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import com.example.events.service.RedisTokenBlacklistService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,11 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final RedisTokenBlacklistService tokenBlacklistService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, RedisTokenBlacklistService tokenBlacklistService) {
         this.userService = userService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
 
@@ -35,6 +38,20 @@ public class UserController {
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) throws UserNotFoundException {
         AuthResponse response = userService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            tokenBlacklistService.blacklistToken(token);
+            return ResponseEntity.ok("Logout successful. Token has been invalidated.");
+        }
+
+        return ResponseEntity.badRequest().body("No token found to invalidate.");
     }
 
 

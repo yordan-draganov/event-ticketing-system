@@ -1,6 +1,7 @@
 package com.example.events.security;
 
 import com.example.events.repository.UserRepository;
+import com.example.events.service.RedisTokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,20 +16,24 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 
-
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final RedisTokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil,
+                                   UserRepository userRepository,
+                                   RedisTokenBlacklistService tokenBlacklistService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         final String authorizationHeader = request.getHeader("Authorization");
 
@@ -37,6 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
+
+            if (tokenBlacklistService.isTokenBlacklisted(jwt)) {
+                logger.warn("Attempted to use blacklisted (logged out) token");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             try {
                 username = jwtUtil.extractUsername(jwt);
             } catch (Exception e) {
@@ -53,7 +65,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
 
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, null, Collections.singletonList(authority));
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                Collections.singletonList(authority)
+                        );
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
