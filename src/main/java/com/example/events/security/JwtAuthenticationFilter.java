@@ -1,7 +1,11 @@
 package com.example.events.security;
 
+import com.example.events.exception.InvalidTokenException;
+import com.example.events.exception.TokenBlacklistedException;
+import com.example.events.exception.TokenExpiredException;
 import com.example.events.repository.UserRepository;
 import com.example.events.service.RedisTokenBlacklistService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,14 +49,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (tokenBlacklistService.isTokenBlacklisted(jwt)) {
                 logger.warn("Attempted to use blacklisted (logged out) token");
-                filterChain.doFilter(request, response);
-                return;
+                request.setAttribute("tokenError", "Token has been invalidated. Please login again.");
+                throw new TokenBlacklistedException("This token has been invalidated. Please login again.");
             }
 
             try {
                 username = jwtUtil.extractUsername(jwt);
+            } catch (ExpiredJwtException e) {
+                logger.error("JWT Token has expired: " + e.getMessage());
+                request.setAttribute("tokenError", "Token has expired");
+                throw new TokenExpiredException("JWT token has expired. Please login again.");
             } catch (Exception e) {
                 logger.error("JWT Token extraction failed: " + e.getMessage());
+                request.setAttribute("tokenError", "Token processing failed");
+                throw new InvalidTokenException("Failed to process JWT token: " + e.getMessage());
             }
         }
 
@@ -79,6 +89,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 request.setAttribute("userRole", role);
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                throw new InvalidTokenException("JWT token validation failed");
             }
         }
 

@@ -4,8 +4,7 @@ import com.example.events.DTO.AuthResponse;
 import com.example.events.DTO.LoginRequest;
 import com.example.events.DTO.SignupRequest;
 import com.example.events.DTO.UserDTO;
-import com.example.events.exception.UserExistsException;
-import com.example.events.exception.UserNotFoundException;
+import com.example.events.exception.*;
 import com.example.events.model.User;
 import com.example.events.model.UserRole;
 import com.example.events.repository.UserRepository;
@@ -40,9 +39,9 @@ public class UserService {
         return new BCryptPasswordEncoder();
     }
 
-    public AuthResponse signUp(SignupRequest request) throws UserExistsException {
+    public AuthResponse signUp(SignupRequest request) {
         if (userRepository.existsByName(request.getName())) {
-            throw new UserExistsException("User with name " + request.getName() + " already exists");
+            throw new UserExistsException("User with name '" + request.getName() + "' already exists");
         }
 
         UserRole role = request.getRole() != null ? request.getRole() : UserRole.user;
@@ -73,12 +72,12 @@ public class UserService {
                 .build();
     }
 
-    public AuthResponse login(LoginRequest request) throws UserNotFoundException {
+    public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByName(request.getName())
                 .orElseThrow(() -> new UserNotFoundException("User not found with name: " + request.getName()));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new UserNotFoundException("Invalid credentials");
+            throw new InvalidCredentialsException("Invalid username or password");
         }
 
         String token = jwtUtil.generateToken(
@@ -98,11 +97,11 @@ public class UserService {
                 .build();
     }
 
-    public String deleteUser(HttpServletRequest request) throws UserNotFoundException {
+    public String deleteUser(HttpServletRequest request) {
         String userName = (String) request.getAttribute("userName");
 
         if (userName == null) {
-            throw new UserNotFoundException("User not authenticated");
+            throw new UnauthorizedException("User not authenticated");
         }
 
         User user = userRepository.findByName(userName)
@@ -112,9 +111,7 @@ public class UserService {
         return "User deleted successfully";
     }
 
-    public String changePassword(String newPassword, HttpServletRequest request)
-            throws UserNotFoundException {
-
+    public String changePassword(String newPassword, HttpServletRequest request) {
         User user = getAuthenticatedUser(request);
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -122,13 +119,11 @@ public class UserService {
         return "Password changed successfully";
     }
 
-    public AuthResponse changeName(String newName, HttpServletRequest request)
-            throws UserExistsException, UserNotFoundException {
-
+    public AuthResponse changeName(String newName, HttpServletRequest request) {
         User user = getAuthenticatedUser(request);
 
         if (userRepository.existsByName(newName) && !user.getName().equals(newName)) {
-            throw new UserExistsException("Name " + newName + " is already taken");
+            throw new UserExistsException("Name '" + newName + "' is already taken");
         }
 
         user.setName(newName);
@@ -151,14 +146,14 @@ public class UserService {
                 .build();
     }
 
-    public String getUserRole(String name) throws UserNotFoundException {
+    public String getUserRole(String name) {
         User user = userRepository.findByName(name.trim())
                 .orElseThrow(() -> new UserNotFoundException("User not found with name: " + name));
 
         return user.getRole().toString();
     }
 
-    public UserDTO getUserById(UUID id) throws UserNotFoundException {
+    public UserDTO getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
 
@@ -171,11 +166,11 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    private User getAuthenticatedUser(HttpServletRequest request) throws UserNotFoundException {
+    private User getAuthenticatedUser(HttpServletRequest request) {
         String userName = (String) request.getAttribute("userName");
 
         if (userName == null) {
-            throw new UserNotFoundException("User not authenticated");
+            throw new UnauthorizedException("User not authenticated");
         }
 
         return userRepository.findByName(userName)
