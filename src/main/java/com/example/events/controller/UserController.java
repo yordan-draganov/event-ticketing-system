@@ -6,6 +6,7 @@ import com.example.events.exception.UserNotFoundException;
 import com.example.events.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import com.example.events.service.RedisTokenBlacklistService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -28,14 +29,14 @@ public class UserController {
 
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signUp(@RequestBody SignupRequest request) throws UserExistsException {
+    public ResponseEntity<AuthResponse> signUp(@Valid @RequestBody SignupRequest request) throws UserExistsException {
         AuthResponse response = userService.signUp(request);
         return ResponseEntity.ok(response);
     }
 
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) throws UserNotFoundException {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) throws UserNotFoundException {
         AuthResponse response = userService.login(request);
         return ResponseEntity.ok(response);
     }
@@ -65,7 +66,7 @@ public class UserController {
 
     @PatchMapping("/pass")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request,
+    public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                                  HttpServletRequest httpRequest) throws UserNotFoundException {
         String message = userService.changePassword(
                 request.getOldPassword(),

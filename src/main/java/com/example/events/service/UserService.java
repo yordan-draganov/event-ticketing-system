@@ -22,9 +22,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class UserService {
-
-    private static final Pattern email_pattern = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -40,27 +37,7 @@ public class UserService {
         this.tokenBlacklistService = tokenBlacklistService;
     }
 
-    private void validateEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email is required");
-        }
-        if (!email_pattern.matcher(email).matches()) {
-            throw new IllegalArgumentException("Invalid email format");
-        }
-    }
-
-    private void validatePassword(String password) {
-        if (password == null || password.length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters long");
-        }
-
-    }
-
     public AuthResponse signUp(SignupRequest request) {
-        validateEmail(request.getEmail());
-
-        validatePassword(request.getPassword());
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserExistsException("Email already registered");
         }
@@ -148,7 +125,6 @@ public class UserService {
             throw new InvalidCredentialsException("Current password is incorrect");
         }
 
-        validatePassword(newPassword);
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException("New password must be different from current password");
