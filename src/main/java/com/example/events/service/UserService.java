@@ -16,25 +16,55 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class UserService {
 
+    private static final Pattern email_pattern = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RedisTokenBlacklistService tokenBlacklistService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, RedisTokenBlacklistService tokenBlacklistService) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtUtil jwtUtil,
+                       RedisTokenBlacklistService tokenBlacklistService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.tokenBlacklistService = tokenBlacklistService;
     }
 
+    private void validateEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (!email_pattern.matcher(email).matches()) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long");
+        }
+
+    }
+
     public AuthResponse signUp(SignupRequest request) {
+        validateEmail(request.getEmail());
+
+        validatePassword(request.getPassword());
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserExistsException("Email already registered");
+        }
+
         if (userRepository.existsByName(request.getName())) {
             throw new UserExistsException("User with name '" + request.getName() + "' already exists");
         }
@@ -94,6 +124,7 @@ public class UserService {
 
     public String deleteUser(HttpServletRequest request) {
         String userName = (String) request.getAttribute("userName");
+
         if (userName == null) {
             throw new UnauthorizedException("User not authenticated");
         }
@@ -110,8 +141,19 @@ public class UserService {
         return "User deleted successfully";
     }
 
-    public String changePassword(String newPassword, HttpServletRequest request) {
+    public String changePassword(String oldPassword, String newPassword, HttpServletRequest request) {
         User user = getAuthenticatedUser(request);
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        validatePassword(newPassword);
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
@@ -127,7 +169,11 @@ public class UserService {
     public AuthResponse changeName(String newName, HttpServletRequest request) {
         User user = getAuthenticatedUser(request);
 
-        if (userRepository.existsByName(newName) && !user.getName().equals(newName)) {
+        if (user.getName().equals(newName)) {
+            throw new IllegalArgumentException("New name is the same as current name");
+        }
+
+        if (userRepository.existsByName(newName)) {
             throw new UserExistsException("Name '" + newName + "' is already taken");
         }
 

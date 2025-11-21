@@ -65,8 +65,13 @@ public class UserController {
 
     @PatchMapping("/pass")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) throws UserNotFoundException {
-        String message = userService.changePassword(request.getNewPassword(), httpRequest);
+    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request,
+                                                 HttpServletRequest httpRequest) throws UserNotFoundException {
+        String message = userService.changePassword(
+                request.getOldPassword(),
+                request.getNewPassword(),
+                httpRequest
+        );
         return ResponseEntity.ok(message);
     }
 
