@@ -10,8 +10,6 @@ import com.example.events.model.UserRole;
 import com.example.events.repository.UserRepository;
 import com.example.events.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,16 +27,11 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final RedisTokenBlacklistService tokenBlacklistService;
 
-    public UserService(UserRepository userRepository, JwtUtil jwtUtil, RedisTokenBlacklistService tokenBlacklistService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, RedisTokenBlacklistService tokenBlacklistService) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
-        this.passwordEncoder = passwordEncoder();
         this.tokenBlacklistService = tokenBlacklistService;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     public AuthResponse signUp(SignupRequest request) {
