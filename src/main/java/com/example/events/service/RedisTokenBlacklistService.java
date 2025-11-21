@@ -1,17 +1,26 @@
 package com.example.events.service;
 
 import com.example.events.security.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.RedisCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class RedisTokenBlacklistService {
 
     private static final String prefix = "blacklist:token:";
+    private static final Logger logger = LoggerFactory.getLogger(RedisTokenBlacklistService.class);
 
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtUtil jwtUtil;
@@ -29,8 +38,18 @@ public class RedisTokenBlacklistService {
             if (ttlInSeconds > 0) {
                 String key = prefix + token;
                 redisTemplate.opsForValue().set(key, "blacklisted", ttlInSeconds, TimeUnit.SECONDS);
+                logger.debug("Token blacklisted with TTL: {} seconds", ttlInSeconds);
+            } else {
+                logger.warn("Token already expired");
             }
+        } catch (ExpiredJwtException e) {
+            logger.debug("Token already expired, skipping blacklist: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            logger.error("Malformed JWT token, using default TTL: {}", e.getMessage());
+            String key = prefix + token;
+            redisTemplate.opsForValue().set(key, "blacklisted", Duration.ofHours(24));
         } catch (Exception e) {
+            logger.error("Failed to extract token expiration", e);
             String key = prefix + token;
             redisTemplate.opsForValue().set(key, "blacklisted", Duration.ofHours(24));
         }
@@ -50,11 +69,35 @@ public class RedisTokenBlacklistService {
 
     // for monitoring
     public long getBlacklistSize() {
-        return redisTemplate.keys(prefix + "*").size();
+        AtomicLong count = new AtomicLong(0);
+        redisTemplate.execute((RedisCallback<Void>) connection -> {
+            ScanOptions options = ScanOptions.scanOptions()
+                    .match(prefix + "*")
+                    .count(100)
+                    .build();
+            Cursor<byte[]> cursor = connection.scan(options);
+            while (cursor.hasNext()) {
+                cursor.next();
+                count.incrementAndGet();
+            }
+            cursor.close();
+            return null;
+        });
+        return count.get();
     }
 
-
     public void clearAllBlacklisted() {
-        redisTemplate.keys(prefix + "*").forEach(redisTemplate::delete);
+        redisTemplate.execute((RedisCallback<Void>) connection -> {
+            ScanOptions options = ScanOptions.scanOptions()
+                    .match(prefix + "*")
+                    .count(100)
+                    .build();
+            Cursor<byte[]> cursor = connection.scan(options);
+            while (cursor.hasNext()) {
+                connection.del(cursor.next());
+            }
+            cursor.close();
+            return null;
+        });
     }
 }

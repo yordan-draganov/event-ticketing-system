@@ -27,11 +27,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RedisTokenBlacklistService tokenBlacklistService;
 
-    public UserService(UserRepository userRepository, JwtUtil jwtUtil) {
+    public UserService(UserRepository userRepository, JwtUtil jwtUtil, RedisTokenBlacklistService tokenBlacklistService) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder();
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Bean
@@ -99,14 +101,18 @@ public class UserService {
 
     public String deleteUser(HttpServletRequest request) {
         String userName = (String) request.getAttribute("userName");
-
         if (userName == null) {
             throw new UnauthorizedException("User not authenticated");
         }
 
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            tokenBlacklistService.blacklistToken(token);
+        }
+
         User user = userRepository.findByName(userName)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-
         userRepository.delete(user);
         return "User deleted successfully";
     }
@@ -116,7 +122,13 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        return "Password changed successfully";
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            tokenBlacklistService.blacklistToken(token);
+        }
+
+        return "Password changed successfully. Please login again with your new password.";
     }
 
     public AuthResponse changeName(String newName, HttpServletRequest request) {
