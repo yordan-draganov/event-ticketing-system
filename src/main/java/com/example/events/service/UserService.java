@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,21 +56,7 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        String token = jwtUtil.generateToken(
-                savedUser.getId(),
-                savedUser.getName(),
-                savedUser.getRole().name()
-        );
-
-        return AuthResponse.builder()
-                .token(token)
-                .type("Bearer")
-                .userId(savedUser.getId())
-                .name(savedUser.getName())
-                .email(savedUser.getEmail())
-                .role(savedUser.getRole())
-                .message("User registered successfully")
-                .build();
+        return buildAuthResponse(savedUser, "User registered successfully");
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -82,21 +67,7 @@ public class UserService {
             throw new InvalidCredentialsException("Invalid username or password");
         }
 
-        String token = jwtUtil.generateToken(
-                user.getId(),
-                user.getName(),
-                user.getRole().name()
-        );
-
-        return AuthResponse.builder()
-                .token(token)
-                .type("Bearer")
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .message("Login successful. Welcome " + user.getName())
-                .build();
+        return buildAuthResponse(user, "Login successful. Welcome " + user.getName());
     }
 
     public String deleteUser(HttpServletRequest request) {
@@ -106,11 +77,7 @@ public class UserService {
             throw new UnauthorizedException("User not authenticated");
         }
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            tokenBlacklistService.blacklistToken(token);
-        }
+        blacklistCurrentToken(request);
 
         User user = userRepository.findByName(userName)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -125,7 +92,6 @@ public class UserService {
             throw new InvalidCredentialsException("Current password is incorrect");
         }
 
-
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException("New password must be different from current password");
         }
@@ -133,11 +99,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            tokenBlacklistService.blacklistToken(token);
-        }
+        blacklistCurrentToken(request);
 
         return "Password changed successfully. Please login again with your new password.";
     }
@@ -156,21 +118,7 @@ public class UserService {
         user.setName(newName);
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(
-                user.getId(),
-                user.getName(),
-                user.getRole().name()
-        );
-
-        return AuthResponse.builder()
-                .token(token)
-                .type("Bearer")
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .message("Name changed successfully to: " + newName)
-                .build();
+        return buildAuthResponse(user, "Name changed successfully to: " + newName);
     }
 
     public String getUserRole(String name) {
@@ -191,6 +139,32 @@ public class UserService {
         return userRepository.findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    private AuthResponse buildAuthResponse(User user, String message) {
+        String token = jwtUtil.generateToken(
+                user.getId(),
+                user.getName(),
+                user.getRole().name()
+        );
+
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .message(message)
+                .build();
+    }
+
+    private void blacklistCurrentToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            tokenBlacklistService.blacklistToken(token);
+        }
     }
 
     private User getAuthenticatedUser(HttpServletRequest request) {
