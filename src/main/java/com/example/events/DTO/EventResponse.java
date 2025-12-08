@@ -1,7 +1,6 @@
 package com.example.events.DTO;
 
 import com.example.events.model.EventCategory;
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,12 +8,13 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventResponse {
-    private Long id;
+    private UUID id;
     private String title;
     private LocalDate date;
     private String location;

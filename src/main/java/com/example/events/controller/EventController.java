@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/events")
@@ -25,10 +26,27 @@ public class EventController {
         return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
     }
 
+    @GetMapping("/get/{id}")
+    public ResponseEntity<EventResponse> getEventById(@PathVariable UUID id) {
+        EventResponse event = eventService.getEventById(id);
+        return ResponseEntity.ok(event);
+    }
+
     @GetMapping("/all")
     public ResponseEntity<List<EventResponse>> getAllEvents() {
         List<EventResponse> events = eventService.getAllEvents();
         return ResponseEntity.ok(events);
     }
 
+    @PutMapping("/update/{id}")
+    public ResponseEntity<EventResponse> updateEvent(@PathVariable UUID id, @Valid @RequestBody EventCreateDTO eventDTO) {
+        EventResponse updatedEvent = eventService.updateEvent(id, eventDTO);
+        return ResponseEntity.ok(updatedEvent);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
+        eventService.deleteEvent(id);
+        return ResponseEntity.noContent().build();
+    }
 }
