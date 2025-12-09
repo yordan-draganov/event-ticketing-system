@@ -1,7 +1,6 @@
 package com.example.events.controller;
 
 import com.example.events.DTO.*;
-import com.example.events.exception.UserExistsException;
 import com.example.events.exception.UserNotFoundException;
 import com.example.events.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,16 +26,15 @@ public class UserController {
         this.tokenBlacklistService = tokenBlacklistService;
     }
 
-
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signUp(@Valid @RequestBody SignupRequest request) throws UserExistsException {
+    public ResponseEntity<AuthResponse> signUp(@Valid @RequestBody SignupRequest request) {
         AuthResponse response = userService.signUp(request);
         return ResponseEntity.ok(response);
     }
 
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) throws UserNotFoundException {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request);
         return ResponseEntity.ok(response);
     }
@@ -58,7 +56,7 @@ public class UserController {
 
     @DeleteMapping("/delete")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> deleteUser(HttpServletRequest request) throws UserNotFoundException {
+    public ResponseEntity<String> deleteUser(HttpServletRequest request) {
         String message = userService.deleteUser(request);
         return ResponseEntity.ok(message);
     }
@@ -67,7 +65,7 @@ public class UserController {
     @PatchMapping("/pass")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request,
-                                                 HttpServletRequest httpRequest) throws UserNotFoundException {
+                                                 HttpServletRequest httpRequest) {
         String message = userService.changePassword(
                 request.getOldPassword(),
                 request.getNewPassword(),
@@ -79,16 +77,15 @@ public class UserController {
 
     @PatchMapping("/name")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<AuthResponse> changeName(@RequestBody ChangeNameRequest request,
-                                                   HttpServletRequest httpRequest)
-            throws UserExistsException, UserNotFoundException {
+    public ResponseEntity<AuthResponse> changeName(@Valid @RequestBody ChangeNameRequest request,
+                                                   HttpServletRequest httpRequest) {
         AuthResponse response = userService.changeName(request.getNewName(), httpRequest);
         return ResponseEntity.ok(response);
     }
 
 
     @GetMapping("/role/{name}")
-    public ResponseEntity<String> getUserRole(@PathVariable String name) throws UserNotFoundException {
+    public ResponseEntity<String> getUserRole(@PathVariable String name) {
         String role = userService.getUserRole(name);
         return ResponseEntity.ok(role);
     }
@@ -96,7 +93,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) throws UserNotFoundException {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) {
         UserDTO user = userService.getUserById(id);
         return ResponseEntity.ok(user);
     }
@@ -112,7 +109,7 @@ public class UserController {
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserDTO> getCurrentUser(HttpServletRequest request) throws UserNotFoundException {
+    public ResponseEntity<UserDTO> getCurrentUser(HttpServletRequest request) {
         String userName = (String) request.getAttribute("userName");
         if (userName == null) {
             throw new UserNotFoundException("User not authenticated");
