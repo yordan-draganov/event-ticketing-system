@@ -22,7 +22,7 @@ jobs:
 
       - name: Build project
         working-directory: ./server
-        run: mvn clean compile test-compile
+        run: mvn clean verify -Dspring.profiles.active=test
 
       - name: Run tests
         working-directory: ./server
