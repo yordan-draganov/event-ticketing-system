@@ -1,9 +1,6 @@
 package com.example.events.security;
 
 import com.example.events.DTO.ErrorResponse;
-import com.example.events.exception.InvalidTokenException;
-import com.example.events.exception.TokenBlacklistedException;
-import com.example.events.exception.TokenExpiredException;
 import com.example.events.repository.UserRepository;
 import com.example.events.service.RedisTokenBlacklistService;
 import com.fasterxml.jackson.databind.ObjectMapper;
