@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -46,8 +44,7 @@ public class Event {
     private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "event_category_type")
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false)
     private EventCategory category;
 
     private String image;
