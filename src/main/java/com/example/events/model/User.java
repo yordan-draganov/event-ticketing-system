@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -19,29 +21,24 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(columnDefinition = "UUID")
-    @Getter
     private UUID id;
 
     @NonNull
     @Column(nullable = false, length = 255)
-    @Getter @Setter
     private String email;
 
     @NonNull
     @Column(nullable = false, length = 255)
-    @Getter @Setter
     private String password;
 
     @NonNull
     @Column(nullable = false, unique = true, length = 255)
-    @Getter @Setter
     private String name;
 
     @NonNull
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.NAMED_ENUM)
-    @Getter @Setter
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserRole role;
 
 

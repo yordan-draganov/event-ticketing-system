@@ -22,7 +22,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE events (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
     location VARCHAR(255) NOT NULL,
@@ -46,9 +46,9 @@ CREATE TABLE events (
 );
 
 CREATE TABLE tickets (
-    id VARCHAR(50) PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     price_per_ticket DECIMAL(10, 2) NOT NULL CHECK (price_per_ticket >= 0),
     total_price DECIMAL(10, 2) NOT NULL CHECK (total_price >= 0),
@@ -62,9 +62,9 @@ CREATE TABLE tickets (
 );
 
 CREATE TABLE reviews (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
