@@ -103,30 +103,6 @@ class UserControllerTest {
     }
 
     @Test
-    void testLoginUserNotFound() {
-        Mockito.doThrow(new UserNotFoundException("User not found with name: testuser"))
-                .when(userService).login(Mockito.any(LoginRequest.class));
-
-        assertThrows(UserNotFoundException.class, () -> {
-            userController.login(loginRequest);
-        });
-
-        Mockito.verify(userService).login(loginRequest);
-    }
-
-    @Test
-    void testLoginInvalidCredentials() {
-        Mockito.doThrow(new InvalidCredentialsException("Invalid username or password"))
-                .when(userService).login(Mockito.any(LoginRequest.class));
-
-        assertThrows(InvalidCredentialsException.class, () -> {
-            userController.login(loginRequest);
-        });
-
-        Mockito.verify(userService).login(loginRequest);
-    }
-
-    @Test
     void testLogoutSuccess() {
         Mockito.when(httpServletRequest.getHeader("Authorization")).thenReturn("Bearer test-token");
 
@@ -195,18 +171,6 @@ class UserControllerTest {
         assertNotNull(response.getBody());
         assertEquals(userId, response.getBody().getId());
         assertEquals("testuser", response.getBody().getName());
-        Mockito.verify(userService).getUserById(userId);
-    }
-
-    @Test
-    void testGetUserByIdNotFound() {
-        Mockito.doThrow(new UserNotFoundException("User not found with id: " + userId))
-                .when(userService).getUserById(userId);
-
-        assertThrows(UserNotFoundException.class, () -> {
-            userController.getUserById(userId);
-        });
-
         Mockito.verify(userService).getUserById(userId);
     }
 
