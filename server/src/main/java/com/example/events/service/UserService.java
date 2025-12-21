@@ -5,6 +5,7 @@ import com.example.events.DTO.LoginRequest;
 import com.example.events.DTO.SignupRequest;
 import com.example.events.DTO.UserDTO;
 import com.example.events.exception.*;
+import com.example.events.mapper.UserMapper;
 import com.example.events.model.User;
 import com.example.events.model.UserRole;
 import com.example.events.repository.UserRepository;
@@ -25,15 +26,18 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RedisTokenBlacklistService tokenBlacklistService;
+    private final UserMapper userMapper;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
-                       RedisTokenBlacklistService tokenBlacklistService) {
+                       RedisTokenBlacklistService tokenBlacklistService,
+                       UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.userMapper = userMapper;
     }
 
     public AuthResponse signUp(SignupRequest request) {
@@ -46,13 +50,10 @@ public class UserService {
         }
 
         UserRole role = request.getRole() != null ? request.getRole() : UserRole.user;
+        request.setRole(role);
 
-        User user = User.builder()
-                .email(request.getEmail())
-                .name(request.getName())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(role)
-                .build();
+        User user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User savedUser = userRepository.save(user);
 
@@ -132,12 +133,12 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
 
-        return convertToDTO(user);
+        return userMapper.toDTO(user);
     }
 
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(this::convertToDTO)
+                .map(userMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -176,16 +177,5 @@ public class UserService {
 
         return userRepository.findByName(userName)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-    }
-
-    private UserDTO convertToDTO(User user) {
-        return UserDTO.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .role(user.getRole())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
     }
 }
