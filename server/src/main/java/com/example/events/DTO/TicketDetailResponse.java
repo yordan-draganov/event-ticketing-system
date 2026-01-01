@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -20,10 +21,12 @@ import java.util.UUID;
 @Builder
 public class TicketDetailResponse {
     private UUID id;
-    private Integer quantity;
-    private BigDecimal pricePerTicket;
+    private UUID sectionId;
+    private String sectionName;
+    private Integer seatCount;
     private BigDecimal totalPrice;
     private TicketStatus status;
+    private List<SeatResponse> seats;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime purchaseDate;

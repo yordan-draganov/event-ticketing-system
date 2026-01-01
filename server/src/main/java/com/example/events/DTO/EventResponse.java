@@ -20,15 +20,17 @@ public class EventResponse {
     private String location;
     private String description;
     private String longDescription;
-    private BigDecimal price;
     private EventCategory category;
     private String image;
     private String organizer;
     private LocalTime startTime;
     private LocalTime endTime;
-    private Integer availableTickets;
-    private Integer totalTickets;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private Boolean isFinished;
+    private BigDecimal minPrice;
+    private BigDecimal maxPrice;
+    private Integer totalSeats;
+    private Integer availableSeats;
+    private Integer sectionCount;
 }
