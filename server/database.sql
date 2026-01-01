@@ -28,20 +28,16 @@ CREATE TABLE events (
     location VARCHAR(255) NOT NULL,
     description TEXT,
     long_description TEXT,
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
     category event_category_type NOT NULL,
     image VARCHAR(255),
     organizer VARCHAR(255),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    available_tickets INTEGER NOT NULL CHECK (available_tickets >= 0),
-    total_tickets INTEGER NOT NULL CHECK (total_tickets > 0),
     latitude DECIMAL(10, 7),
     longitude DECIMAL(10, 7),
     is_finished BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_tickets_valid CHECK (available_tickets <= total_tickets),
     CONSTRAINT check_time_valid CHECK (end_time > start_time)
 );
 
@@ -49,16 +45,14 @@ CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
-    price_per_ticket DECIMAL(10, 2) NOT NULL CHECK (price_per_ticket >= 0),
+    section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
     total_price DECIMAL(10, 2) NOT NULL CHECK (total_price >= 0),
     status ticket_status_type DEFAULT 'confirmed',
     purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     qr_code_url VARCHAR(255),
     email_sent BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_total_price CHECK (total_price = price_per_ticket * quantity)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE reviews (
@@ -72,10 +66,33 @@ CREATE TABLE reviews (
     UNIQUE (user_id, event_id)
 );
 
+CREATE TABLE seats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    row_label VARCHAR(5) NOT NULL,
+    seat_number INTEGER NOT NULL CHECK (seat_number > 0),
+    is_available BOOLEAN DEFAULT TRUE,
+    ticket_id UUID REFERENCES tickets(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
+    rows_count INTEGER NOT NULL CHECK (rows_count > 0),
+    cols_count INTEGER NOT NULL CHECK (cols_count > 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_tickets_user_id ON tickets(user_id);
 CREATE INDEX idx_tickets_event_id ON tickets(event_id);
+CREATE INDEX idx_tickets_section_id ON tickets(section_id);
 CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_events_category ON events(category);
 CREATE INDEX idx_events_date ON events(date);
@@ -83,6 +100,11 @@ CREATE INDEX idx_events_is_finished ON events(is_finished);
 CREATE INDEX idx_reviews_event_id ON reviews(event_id);
 CREATE INDEX idx_reviews_user_id ON reviews(user_id);
 CREATE INDEX idx_reviews_rating ON reviews(rating);
+CREATE INDEX idx_sections_event_id ON sections(event_id);
+CREATE INDEX idx_seats_section_id ON seats(section_id);
+CREATE INDEX idx_seats_event_id ON seats(event_id);
+CREATE INDEX idx_seats_availability ON seats(event_id, is_available);
+CREATE INDEX idx_seats_ticket_id ON seats(ticket_id);
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -104,13 +126,5 @@ CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets
 CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-INSERT INTO events (title, date, location, description, long_description, price, category, image, organizer, start_time, end_time, available_tickets, total_tickets) VALUES
-('Summer Music Festival', '2025-06-21', 'Central Park, NYC', 'A full-day event with live performances by top artists.', 'Join us for an incredible day of music and fun at Central Park! The Summer Music Festival brings together the best artists from around the world for a day you won''t forget. Enjoy food vendors, art installations, and of course, amazing musical performances across three stages. Early arrival is recommended as space is limited.', 49.99, 'Music', '/api/placeholder/800/400', 'NYC Events Co.', '11:00:00', '22:00:00', 3, 3),
-
-('Tech Innovators Conference', '2025-07-10', 'San Francisco, CA', 'Meet industry leaders and explore the future of tech.', 'The Tech Innovators Conference is where the brightest minds in technology come together to share ideas and shape the future. This year''s conference features keynote speakers from leading tech companies, hands-on workshops, networking opportunities, and exhibits showcasing cutting-edge innovations. Perfect for professionals, entrepreneurs, and tech enthusiasts.', 199.00, 'Technology', '/api/placeholder/800/400', 'Tech Forward', '09:00:00', '18:00:00', 200, 200),
-
-('Food & Wine Expo', '2025-08-05', 'Chicago, IL', 'Taste gourmet dishes and world-class wines.', 'Indulge your senses at the Food & Wine Expo, Chicago''s premier culinary event. Sample exquisite dishes prepared by renowned chefs, discover rare and delicious wines from around the world, and learn cooking techniques from expert demonstrations. The expo features over 100 vendors, cooking competitions, and exclusive tasting sessions.', 29.00, 'Food', '/api/placeholder/800/400', 'Taste of America', '12:00:00', '20:00:00', 300, 300),
-
-('Annual Comic Convention', '2025-09-15', 'Los Angeles, CA', 'Celebrate comics, movies, and pop culture with fellow fans.', 'The Annual Comic Convention brings together fans, creators, and stars for a celebration of all things pop culture! Meet your favorite comic artists, attend celebrity panels, show off your best cosplay, and shop for exclusive merchandise. This year''s convention will feature special guests from blockbuster superhero movies, anime voice actors, and legendary comic creators.', 45.00, 'Entertainment', '/api/placeholder/800/400', 'Fandom Events', '10:00:00', '19:00:00', 1000, 1000),
-
-('Marathon City Run', '2025-10-10', 'Boston, MA', 'Join thousands of runners in this exciting city marathon.', 'Challenge yourself at the Marathon City Run, a 26.2-mile journey through the historic streets of Boston. This USATF-certified course takes runners past iconic landmarks and through beautiful neighborhoods, with cheering spectators lining the route. Registration includes a race kit, finisher medal, and access to the post-race celebration with live music and refreshments.', 75.00, 'Sports', '/api/placeholder/800/400', 'Boston Athletics Association', '07:00:00', '14:00:00', 10000, 10000);
+CREATE TRIGGER update_sections_updated_at BEFORE UPDATE ON sections
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
