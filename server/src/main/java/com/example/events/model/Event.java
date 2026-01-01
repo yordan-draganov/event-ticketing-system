@@ -40,9 +40,6 @@ public class Event {
     @Column(name = "long_description", columnDefinition = "TEXT")
     private String longDescription;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EventCategory category;
@@ -56,12 +53,6 @@ public class Event {
 
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
-
-    @Column(name = "available_tickets", nullable = false)
-    private Integer availableTickets;
-
-    @Column(name = "total_tickets", nullable = false)
-    private Integer totalTickets;
 
     @Column(precision = 10, scale = 7)
     private BigDecimal latitude;
