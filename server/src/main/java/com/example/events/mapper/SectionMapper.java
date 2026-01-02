@@ -1,26 +1,28 @@
 package com.example.events.mapper;
 
+import com.example.events.DTO.SectionRequestDTO;
 import com.example.events.DTO.SectionResponse;
+import com.example.events.model.Event;
 import com.example.events.model.Section;
-import com.example.events.repository.SeatRepository;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(componentModel = "spring")
-public abstract class SectionMapper {
-
-    @Autowired
-    protected SeatRepository seatRepository;
+public interface SectionMapper {
 
     @Mapping(target = "eventId", source = "event.id")
     @Mapping(target = "totalSeats", expression = "java(section.getRowsCount() * section.getColsCount())")
-    @Mapping(target = "availableSeats", source = "section", qualifiedByName = "countAvailable")
-    public abstract SectionResponse toResponse(Section section);
+    @Mapping(target = "availableSeats", ignore = true)
+    SectionResponse toResponse(Section section);
 
-    @Named("countAvailable")
-    protected int countAvailable(Section section) {
-        return (int) seatRepository.countAvailableBySectionId(section.getId());
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "event", source = "event")
+    @Mapping(target = "name", source = "dto.name")
+    @Mapping(target = "price", source = "dto.price")
+    @Mapping(target = "rowsCount", source = "dto.rows")
+    @Mapping(target = "colsCount", source = "dto.cols")
+    @Mapping(target = "seats", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    Section toEntity(SectionRequestDTO dto, Event event);
 }

@@ -4,6 +4,7 @@ import com.example.events.DTO.EventCreateDTO;
 import com.example.events.DTO.EventResponse;
 import com.example.events.DTO.SectionRequestDTO;
 import com.example.events.mapper.EventMapper;
+import com.example.events.mapper.SectionMapper;
 import com.example.events.model.Event;
 import com.example.events.model.Seat;
 import com.example.events.model.Section;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -29,55 +31,20 @@ public class EventService {
     private final SectionRepository sectionRepository;
     private final SeatRepository seatRepository;
     private final EventMapper eventMapper;
+    private final SectionMapper sectionMapper;
 
     @Transactional
     public EventResponse createEvent(EventCreateDTO eventDTO) {
         validateEventTimes(eventDTO.getStartTime(), eventDTO.getEndTime());
 
-        Event event = new Event();
-        event.setTitle(eventDTO.getTitle());
-        event.setDate(eventDTO.getDate());
-        event.setLocation(eventDTO.getLocation());
-        event.setDescription(eventDTO.getDescription());
-        event.setLongDescription(eventDTO.getLongDescription());
-        event.setCategory(eventDTO.getCategory());
-        event.setImage(eventDTO.getImage());
-        event.setOrganizer(eventDTO.getOrganizer());
-        event.setStartTime(eventDTO.getStartTime());
-        event.setEndTime(eventDTO.getEndTime());
-        event.setLatitude(eventDTO.getLatitude());
-        event.setLongitude(eventDTO.getLongitude());
+        Event event = eventMapper.toEntity(eventDTO);
         event.setIsFinished(false);
 
         Event savedEvent = eventRepository.save(event);
 
-        for (SectionRequestDTO sectionReq : eventDTO.getSections()) {
-            Section section = Section.builder()
-                    .event(savedEvent)
-                    .name(sectionReq.getName())
-                    .price(sectionReq.getPrice())
-                    .rowsCount(sectionReq.getRows())
-                    .colsCount(sectionReq.getCols())
-                    .build();
+        createSectionsAndSeats(savedEvent, eventDTO.getSections());
 
-            Section savedSection = sectionRepository.save(section);
-
-            for (int r = 0; r < sectionReq.getRows(); r++) {
-                String rowLabel = String.valueOf((char) ('A' + r));
-                for (int c = 1; c <= sectionReq.getCols(); c++) {
-                    Seat seat = Seat.builder()
-                            .event(savedEvent)
-                            .section(savedSection)
-                            .rowLabel(rowLabel)
-                            .seatNumber(c)
-                            .isAvailable(true)
-                            .build();
-                    seatRepository.save(seat);
-                }
-            }
-        }
-
-        return eventMapper.toResponseDTO(savedEvent);
+        return buildEventResponse(savedEvent);
     }
 
     @Transactional(readOnly = true)
@@ -99,8 +66,24 @@ public class EventService {
         validateEventTimes(eventDTO.getStartTime(), eventDTO.getEndTime());
 
         eventMapper.updateEntityFromDTO(eventDTO, event);
+
         Event updatedEvent = eventRepository.save(event);
-        return eventMapper.toResponseDTO(updatedEvent);
+
+        long soldSeats = seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(id)
+                .stream()
+                .filter(seat -> !seat.getIsAvailable())
+                .count();
+
+        if (soldSeats > 0) {
+            throw new ValidationException("Cannot modify sections with sold tickets " + soldSeats + " seats have already been purchased.");
+        }
+
+        List<Section> existingSections = sectionRepository.findByEventIdOrderByNameAsc(id);
+        sectionRepository.deleteAll(existingSections);
+
+        createSectionsAndSeats(updatedEvent, eventDTO.getSections());
+
+        return buildEventResponse(updatedEvent);
     }
 
     @Transactional
@@ -119,6 +102,34 @@ public class EventService {
     private void validateEventTimes(LocalTime startTime, LocalTime endTime) {
         if (endTime.isBefore(startTime) || endTime.equals(startTime)) {
             throw new ValidationException("End time must be after start time");
+        }
+    }
+
+    private void createSectionsAndSeats(Event event, List<SectionRequestDTO> sectionRequests) {
+        List<Seat> allSeats = new ArrayList<>();
+        
+        for (SectionRequestDTO sectionReq : sectionRequests) {
+            Section section = sectionMapper.toEntity(sectionReq, event);
+
+            Section savedSection = sectionRepository.save(section);
+
+            for (int r = 0; r < sectionReq.getRows(); r++) {
+                String rowLabel = String.valueOf((char) ('A' + r));
+                for (int c = 1; c <= sectionReq.getCols(); c++) {
+                    Seat seat = Seat.builder()
+                            .event(event)
+                            .section(savedSection)
+                            .rowLabel(rowLabel)
+                            .seatNumber(c)
+                            .isAvailable(true)
+                            .build();
+                    allSeats.add(seat);
+                }
+            }
+        }
+        
+        if (!allSeats.isEmpty()) {
+            seatRepository.saveAll(allSeats);
         }
     }
 
