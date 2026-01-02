@@ -18,6 +18,9 @@ public interface TicketMapper {
     @Mapping(source = "event.startTime", target = "startTime")
     @Mapping(source = "event.endTime", target = "endTime")
     @Mapping(source = "event.image", target = "eventImage")
+    @Mapping(source = "section.id", target = "sectionId")
+    @Mapping(source = "section.name", target = "sectionName")
+    @Mapping(target = "seatCount", ignore = true)
     TicketResponse toResponse(Ticket ticket);
 
     @Mapping(source = "user.id", target = "userId")
@@ -36,5 +39,9 @@ public interface TicketMapper {
     @Mapping(source = "event.endTime", target = "endTime")
     @Mapping(source = "event.latitude", target = "latitude")
     @Mapping(source = "event.longitude", target = "longitude")
+    @Mapping(source = "section.id", target = "sectionId")
+    @Mapping(source = "section.name", target = "sectionName")
+    @Mapping(target = "seatCount", ignore = true)
+    @Mapping(target = "seats", ignore = true)
     TicketDetailResponse toDetailResponse(Ticket ticket);
 }

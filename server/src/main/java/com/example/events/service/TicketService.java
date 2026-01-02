@@ -7,10 +7,13 @@ import com.example.events.exception.ResourceNotFoundException;
 import com.example.events.exception.ValidationException;
 import com.example.events.mapper.TicketMapper;
 import com.example.events.model.Event;
+import com.example.events.model.Seat;
+import com.example.events.model.Section;
 import com.example.events.model.Ticket;
 import com.example.events.model.TicketStatus;
 import com.example.events.model.User;
 import com.example.events.repository.EventRepository;
+import com.example.events.repository.SeatRepository;
 import com.example.events.repository.TicketRepository;
 import com.example.events.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,11 +37,12 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final SeatRepository seatRepository;
     private final TicketMapper ticketMapper;
 
     @Transactional
     public TicketResponse createTicket(TicketCreateDTO request, UUID userId) {
-        logger.info("Creating ticket for user {} and event {}", userId, request.getEventId());
+        logger.info("Creating ticket for user {} and event {} with {} seats", userId, request.getEventId(), request.getSeatIds().size());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
@@ -49,34 +54,57 @@ public class TicketService {
             throw new ValidationException("Cannot purchase tickets for a finished event");
         }
 
-        if (event.getAvailableTickets() < request.getQuantity()) {
-            throw new ValidationException(
-                    String.format("Not enough tickets available. Requested: %d, Available: %d",
-                            request.getQuantity(), event.getAvailableTickets())
-            );
+        if (request.getSeatIds() == null || request.getSeatIds().isEmpty()) {
+            throw new ValidationException("At least one seat must be selected");
         }
 
-        BigDecimal pricePerTicket = event.getPrice();
-        BigDecimal totalPrice = pricePerTicket.multiply(BigDecimal.valueOf(request.getQuantity()));
+        List<Seat> seats = seatRepository.findByIdInAndEventId(request.getSeatIds(), request.getEventId());
+
+        if (seats.size() != request.getSeatIds().size()) {
+            throw new ValidationException("Some of the requested seats were not found or do not belong to this event");
+        }
+
+        List<Seat> unavailableSeats = seats.stream()
+                .filter(seat -> !seat.getIsAvailable() || seat.getTicket() != null)
+                .collect(Collectors.toList());
+
+        if (!unavailableSeats.isEmpty()) {
+            throw new ValidationException("Some of the requested seats are not available");
+        }
+
+        Set<UUID> sectionIds = seats.stream()
+                .map(seat -> seat.getSection().getId())
+                .collect(Collectors.toSet());
+
+        if (sectionIds.size() != 1) {
+            throw new ValidationException("All seats must be from the same section");
+        }
+
+        Section section = seats.get(0).getSection();
+        BigDecimal totalPrice = section.getPrice().multiply(BigDecimal.valueOf(seats.size()));
 
         Ticket ticket = Ticket.builder()
                 .user(user)
                 .event(event)
-                .quantity(request.getQuantity())
-                .pricePerTicket(pricePerTicket)
+                .section(section)
                 .totalPrice(totalPrice)
                 .status(TicketStatus.confirmed)
                 .emailSent(false)
                 .build();
 
-        event.setAvailableTickets(event.getAvailableTickets() - request.getQuantity());
-        eventRepository.save(event);
-
         Ticket savedTicket = ticketRepository.save(ticket);
 
-        logger.info("Ticket created successfully with id: {}", savedTicket.getId());
+        for (Seat seat : seats) {
+            seat.setTicket(savedTicket);
+            seat.setIsAvailable(false);
+            seatRepository.save(seat);
+        }
 
-        return ticketMapper.toResponse(savedTicket);
+        logger.info("Ticket created successfully with id: {} for {} seats", savedTicket.getId(), seats.size());
+
+        TicketResponse response = ticketMapper.toResponse(savedTicket);
+        response.setSeatCount(seats.size());
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -90,7 +118,12 @@ public class TicketService {
         List<Ticket> tickets = ticketRepository.findByUserId(userId);
         return tickets.stream()
                 .filter(ticket -> ticket.getStatus() != TicketStatus.cancelled)
-                .map(ticketMapper::toResponse)
+                .map(ticket -> {
+                    TicketResponse response = ticketMapper.toResponse(ticket);
+                    List<Seat> ticketSeats = seatRepository.findByTicketId(ticket.getId());
+                    response.setSeatCount(ticketSeats.size());
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -105,7 +138,25 @@ public class TicketService {
             throw new ValidationException("You don't have permission to view this ticket");
         }
 
-        return ticketMapper.toDetailResponse(ticket);
+        TicketDetailResponse response = ticketMapper.toDetailResponse(ticket);
+        List<Seat> seats = seatRepository.findByTicketId(ticketId);
+        response.setSeatCount(seats.size());
+        
+        List<com.example.events.DTO.SeatResponse> seatResponses = seats.stream()
+                .map(seat -> com.example.events.DTO.SeatResponse.builder()
+                        .id(seat.getId())
+                        .sectionId(seat.getSection().getId())
+                        .sectionName(seat.getSection().getName())
+                        .sectionPrice(seat.getSection().getPrice())
+                        .rowLabel(seat.getRowLabel())
+                        .seatNumber(seat.getSeatNumber())
+                        .isAvailable(seat.getIsAvailable())
+                        .displayLabel(seat.getRowLabel() + "-" + seat.getSeatNumber())
+                        .build())
+                .collect(Collectors.toList());
+        response.setSeats(seatResponses);
+        
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -114,7 +165,12 @@ public class TicketService {
 
         List<Ticket> tickets = ticketRepository.findAll();
         return tickets.stream()
-                .map(ticketMapper::toResponse)
+                .map(ticket -> {
+                    TicketResponse response = ticketMapper.toResponse(ticket);
+                    List<Seat> ticketSeats = seatRepository.findByTicketId(ticket.getId());
+                    response.setSeatCount(ticketSeats.size());
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -133,14 +189,17 @@ public class TicketService {
             throw new ValidationException("Cannot delete a " + ticket.getStatus() + " ticket");
         }
 
-        Event event = ticket.getEvent();
-        event.setAvailableTickets(event.getAvailableTickets() + ticket.getQuantity());
-        eventRepository.save(event);
+        List<Seat> seats = seatRepository.findByTicketId(ticketId);
+        for (Seat seat : seats) {
+            seat.setTicket(null);
+            seat.setIsAvailable(true);
+            seatRepository.save(seat);
+        }
 
         ticket.setStatus(TicketStatus.cancelled);
         ticketRepository.save(ticket);
 
-        logger.info("Ticket {} cancelled successfully", ticketId);
+        logger.info("Ticket {} cancelled successfully and {} seats released", ticketId, seats.size());
     }
 
 }

@@ -28,8 +28,9 @@ public class TicketResponse {
     private LocalTime startTime;
     private LocalTime endTime;
     private String eventImage;
-    private Integer quantity;
-    private BigDecimal pricePerTicket;
+    private UUID sectionId;
+    private String sectionName;
+    private Integer seatCount;
     private BigDecimal totalPrice;
     private TicketStatus status;
 

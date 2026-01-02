@@ -33,11 +33,9 @@ public class Ticket {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @Column(nullable = false)
-    private Integer quantity;
-
-    @Column(name = "price_per_ticket", nullable = false, precision = 10, scale = 2)
-    private BigDecimal pricePerTicket;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "section_id", nullable = false)
+    private Section section;
 
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
