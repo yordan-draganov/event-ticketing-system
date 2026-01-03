@@ -1,5 +1,6 @@
 package com.example.events.service;
 
+import com.example.events.DTO.QRCodeValidationResponse;
 import com.example.events.DTO.TicketCreateDTO;
 import com.example.events.DTO.TicketDetailResponse;
 import com.example.events.DTO.TicketResponse;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -217,6 +219,50 @@ public class TicketService {
         ticketRepository.save(ticket);
 
         logger.info("Ticket {} cancelled successfully and {} seats released", ticketId, seats.size());
+    }
+
+    public QRCodeValidationResponse validateTicketQR(String qrContent) {
+        Map<String, String> ticketData = qrCodeService.validateAndParse(qrContent);
+
+        if (ticketData == null) {
+            return QRCodeValidationResponse.builder()
+                    .valid(false)
+                    .message("Invalid QR code signature or corrupted data")
+                    .build();
+        }
+
+        try {
+            String ticketIdStr = ticketData.get("TICKET_ID");
+            UUID ticketId = UUID.fromString(ticketIdStr);
+
+            return ticketRepository.findById(ticketId)
+                    .map(ticket -> {
+                        if (ticket.getStatus() != TicketStatus.confirmed) {
+                            return QRCodeValidationResponse.builder()
+                                    .valid(false)
+                                    .message("Ticket is " + ticket.getStatus())
+                                    .ticketData(ticketData)
+                                    .build();
+                        }
+
+                        return QRCodeValidationResponse.builder()
+                                .valid(true)
+                                .message("QR code verified and ticket is active")
+                                .ticketData(ticketData)
+                                .build();
+                    })
+                    .orElseGet(() -> QRCodeValidationResponse.builder()
+                            .valid(false)
+                            .message("Ticket ID not found in database")
+                            .build());
+
+        } catch (Exception e) {
+            logger.error("Error parsing Ticket ID from QR: {}", e.getMessage());
+            return QRCodeValidationResponse.builder()
+                    .valid(false)
+                    .message("Malformed Ticket ID in QR code")
+                    .build();
+        }
     }
 
 }
