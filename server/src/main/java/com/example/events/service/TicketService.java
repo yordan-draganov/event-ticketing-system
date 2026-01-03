@@ -39,6 +39,7 @@ public class TicketService {
     private final UserRepository userRepository;
     private final SeatRepository seatRepository;
     private final TicketMapper ticketMapper;
+    private final QRCodeService qrCodeService;
 
     @Transactional
     public TicketResponse createTicket(TicketCreateDTO request, UUID userId) {
@@ -94,13 +95,29 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
+        String seatInfo = seats.stream()
+                .map(seat -> seat.getRowLabel() + "-" + seat.getSeatNumber())
+                .collect(Collectors.joining(", "));
+
+        String qrContent = qrCodeService.buildTicketQRContent(
+                savedTicket.getId(),
+                event.getId(),
+                event.getTitle(),
+                user.getName(),
+                seatInfo
+        );
+
+        String qrCodeUrl = qrCodeService.generateAndSaveQRCode(savedTicket.getId(), qrContent);
+        savedTicket.setQrCodeUrl(qrCodeUrl);
+        savedTicket = ticketRepository.save(savedTicket);
+
         for (Seat seat : seats) {
             seat.setTicket(savedTicket);
             seat.setIsAvailable(false);
             seatRepository.save(seat);
         }
 
-        logger.info("Ticket created successfully with id: {} for {} seats", savedTicket.getId(), seats.size());
+        logger.info("Ticket created successfully with id: {} for {} seats with QR code", savedTicket.getId(), seats.size());
 
         TicketResponse response = ticketMapper.toResponse(savedTicket);
         response.setSeatCount(seats.size());
@@ -141,7 +158,7 @@ public class TicketService {
         TicketDetailResponse response = ticketMapper.toDetailResponse(ticket);
         List<Seat> seats = seatRepository.findByTicketId(ticketId);
         response.setSeatCount(seats.size());
-        
+
         List<com.example.events.DTO.SeatResponse> seatResponses = seats.stream()
                 .map(seat -> com.example.events.DTO.SeatResponse.builder()
                         .id(seat.getId())
@@ -155,7 +172,7 @@ public class TicketService {
                         .build())
                 .collect(Collectors.toList());
         response.setSeats(seatResponses);
-        
+
         return response;
     }
 
