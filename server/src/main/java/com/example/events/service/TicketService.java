@@ -1,5 +1,6 @@
 package com.example.events.service;
 
+import com.example.events.DTO.QRCodeValidationResponse;
 import com.example.events.DTO.TicketCreateDTO;
 import com.example.events.DTO.TicketDetailResponse;
 import com.example.events.DTO.TicketResponse;
@@ -23,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,6 +42,8 @@ public class TicketService {
     private final UserRepository userRepository;
     private final SeatRepository seatRepository;
     private final TicketMapper ticketMapper;
+    private final QRCodeService qrCodeService;
+    private final EmailService emailService;
 
     @Transactional
     public TicketResponse createTicket(TicketCreateDTO request, UUID userId) {
@@ -94,13 +99,30 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
+        String verificationToken = qrCodeService.generateCompactToken(savedTicket.getId());
+
+        String qrCodeUrl = qrCodeService.generateAndSaveQRCode(savedTicket.getId(), verificationToken);
+        savedTicket.setQrCodeUrl(qrCodeUrl);
+        savedTicket = ticketRepository.save(savedTicket);
+
         for (Seat seat : seats) {
             seat.setTicket(savedTicket);
             seat.setIsAvailable(false);
             seatRepository.save(seat);
         }
 
-        logger.info("Ticket created successfully with id: {} for {} seats", savedTicket.getId(), seats.size());
+        logger.info("Ticket created successfully with id: {} for {} seats with URL-based QR code", savedTicket.getId(), seats.size());
+
+        try {
+            TicketDetailResponse ticketDetail = getTicketDetailForEmail(savedTicket.getId());
+            emailService.sendTicketConfirmationEmail(ticketDetail);
+
+            savedTicket.setEmailSent(true);
+            ticketRepository.save(savedTicket);
+            logger.info("Email sent successfully for ticket: {}", savedTicket.getId());
+        } catch (Exception e) {
+            logger.error("Failed to send email for ticket {}: {}", savedTicket.getId(), e.getMessage());
+        }
 
         TicketResponse response = ticketMapper.toResponse(savedTicket);
         response.setSeatCount(seats.size());
@@ -141,7 +163,7 @@ public class TicketService {
         TicketDetailResponse response = ticketMapper.toDetailResponse(ticket);
         List<Seat> seats = seatRepository.findByTicketId(ticketId);
         response.setSeatCount(seats.size());
-        
+
         List<com.example.events.DTO.SeatResponse> seatResponses = seats.stream()
                 .map(seat -> com.example.events.DTO.SeatResponse.builder()
                         .id(seat.getId())
@@ -155,7 +177,33 @@ public class TicketService {
                         .build())
                 .collect(Collectors.toList());
         response.setSeats(seatResponses);
-        
+
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    private TicketDetailResponse getTicketDetailForEmail(UUID ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + ticketId));
+
+        TicketDetailResponse response = ticketMapper.toDetailResponse(ticket);
+        List<Seat> seats = seatRepository.findByTicketId(ticketId);
+        response.setSeatCount(seats.size());
+
+        List<com.example.events.DTO.SeatResponse> seatResponses = seats.stream()
+                .map(seat -> com.example.events.DTO.SeatResponse.builder()
+                        .id(seat.getId())
+                        .sectionId(seat.getSection().getId())
+                        .sectionName(seat.getSection().getName())
+                        .sectionPrice(seat.getSection().getPrice())
+                        .rowLabel(seat.getRowLabel())
+                        .seatNumber(seat.getSeatNumber())
+                        .isAvailable(seat.getIsAvailable())
+                        .displayLabel(seat.getRowLabel() + "-" + seat.getSeatNumber())
+                        .build())
+                .collect(Collectors.toList());
+        response.setSeats(seatResponses);
+
         return response;
     }
 
@@ -199,7 +247,64 @@ public class TicketService {
         ticket.setStatus(TicketStatus.cancelled);
         ticketRepository.save(ticket);
 
+        try {
+            emailService.sendTicketCancellationEmail(
+                    ticket.getUser().getEmail(),
+                    ticket.getUser().getName(),
+                    ticket.getEvent().getTitle(),
+                    ticket.getId().toString()
+            );
+            logger.info("Cancellation email sent for ticket: {}", ticketId);
+        } catch (Exception e) {
+            logger.error("Failed to send cancellation email for ticket {}: {}", ticketId, e.getMessage());
+        }
+
         logger.info("Ticket {} cancelled successfully and {} seats released", ticketId, seats.size());
+    }
+
+    @Transactional(readOnly = true)
+    public QRCodeValidationResponse validateTicketByUrl(UUID ticketId, String token) {
+        logger.info("Validating ticket {} with URL token", ticketId);
+
+        if (!qrCodeService.verifyTicketToken(ticketId, token)) {
+            return QRCodeValidationResponse.builder()
+                    .valid(false)
+                    .message("Invalid verification token")
+                    .build();
+        }
+
+        return ticketRepository.findById(ticketId)
+                .map(ticket -> {
+                    Map<String, String> ticketData = new HashMap<>();
+                    ticketData.put("TICKET_ID", ticket.getId().toString());
+                    ticketData.put("EVENT_ID", ticket.getEvent().getId().toString());
+                    ticketData.put("EVENT", ticket.getEvent().getTitle());
+                    ticketData.put("USER", ticket.getUser().getName());
+
+                    List<Seat> seats = seatRepository.findByTicketId(ticketId);
+                    String seatInfo = seats.stream()
+                            .map(seat -> seat.getRowLabel() + "-" + seat.getSeatNumber())
+                            .collect(Collectors.joining(", "));
+                    ticketData.put("SEATS", seatInfo);
+
+                    if (ticket.getStatus() != TicketStatus.confirmed) {
+                        return QRCodeValidationResponse.builder()
+                                .valid(false)
+                                .message("Ticket is " + ticket.getStatus())
+                                .ticketData(ticketData)
+                                .build();
+                    }
+
+                    return QRCodeValidationResponse.builder()
+                            .valid(true)
+                            .message("QR code verified and ticket is active")
+                            .ticketData(ticketData)
+                            .build();
+                })
+                .orElseGet(() -> QRCodeValidationResponse.builder()
+                        .valid(false)
+                        .message("Ticket not found")
+                        .build());
     }
 
 }

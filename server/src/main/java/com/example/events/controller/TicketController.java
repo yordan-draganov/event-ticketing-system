@@ -1,5 +1,7 @@
 package com.example.events.controller;
 
+import com.example.events.DTO.QRCodeValidationRequest;
+import com.example.events.DTO.QRCodeValidationResponse;
 import com.example.events.DTO.TicketCreateDTO;
 import com.example.events.DTO.TicketDetailResponse;
 import com.example.events.DTO.TicketResponse;

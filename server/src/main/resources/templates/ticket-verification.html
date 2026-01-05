@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .valid .icon { color: #10b981; }
+        .invalid .icon { color: #ef4444; }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .valid h1 { color: #10b981; }
+        .invalid h1 { color: #ef4444; }
+
+        .message {
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .ticket-details {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: left;
+            margin-top: 30px;
+        }
+
+        .ticket-details h2 {
+            font-size: 20px;
+            color: #374151;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        dt {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        dd {
+            color: #1f2937;
+            font-weight: 500;
+            text-align: right;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .valid .status-badge {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .invalid .status-badge {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<main class="container" th:classappend="${valid} ? 'valid' : 'invalid'">
+    <header>
+        <div class="icon" aria-hidden="true" th:text="${valid} ? '✓' : '✗'">✓</div>
+        <h1 th:text="${valid} ? 'Ticket Verified!' : 'Verification Failed'">Status</h1>
+    </header>
+
+    <p class="message" th:text="${message}">Message</p>
+    <mark class="status-badge" th:text="${valid} ? 'VALID TICKET' : 'INVALID TICKET'">Status Badge</mark>
+
+    <section class="ticket-details" th:if="${valid and ticketData != null}">
+        <h2> Ticket Details</h2>
+        <dl>
+            <div class="detail-row" th:if="${ticketData['EVENT']}">
+                <dt>Event:</dt>
+                <dd th:text="${ticketData['EVENT']}">Event Name</dd>
+            </div>
+            <div class="detail-row" th:if="${ticketData['USER']}">
+                <dt>Guest:</dt>
+                <dd th:text="${ticketData['USER']}">Guest Name</dd>
+            </div>
+            <div class="detail-row" th:if="${ticketData['SEATS']}">
+                <dt>Seats:</dt>
+                <dd th:text="${ticketData['SEATS']}">A-1, A-2</dd>
+            </div>
+        </dl>
+    </section>
+
+    <footer>
+        <p th:if="${valid}">✓ This ticket has been verified and is valid for entry</p>
+        <p th:if="${!valid}">⚠ This ticket cannot be accepted. Please contact support.</p>
+    </footer>
+</main>
+</body>
+</html>
