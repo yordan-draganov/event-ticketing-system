@@ -6,7 +6,6 @@ import com.example.events.DTO.TicketCreateDTO;
 import com.example.events.DTO.TicketDetailResponse;
 import com.example.events.DTO.TicketResponse;
 import com.example.events.exception.UnauthorizedException;
-import com.example.events.service.QRCodeService;
 import com.example.events.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -17,7 +16,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -27,7 +25,6 @@ import java.util.UUID;
 public class TicketController {
 
     private final TicketService ticketService;
-    private final QRCodeService qrCodeService;
 
     @PostMapping("/create")
     @PreAuthorize("isAuthenticated()")
@@ -75,20 +72,6 @@ public class TicketController {
         UUID userId = extractUserId(httpRequest);
         ticketService.deleteTicket(id, userId);
         return ResponseEntity.ok("Ticket cancelled successfully");
-    }
-
-    @PostMapping("/validate-qr")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<QRCodeValidationResponse> validateQRCode(
-            @Valid @RequestBody QRCodeValidationRequest request) {
-
-        QRCodeValidationResponse response = ticketService.validateTicketQR(request.getQrContent());
-
-        if (response.isValid()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
     }
 
     private UUID extractUserId(HttpServletRequest request) {

@@ -31,7 +31,6 @@ public class QRCodeService {
 
     private static final Logger logger = LoggerFactory.getLogger(QRCodeService.class);
     private static final String hmacAlgorithm = "HmacSHA256";
-    private static final String protectionSignature = "|SIGNATURE:";
 
     @Value("${qr.code.directory}")
     private String qrCodeDirectory;
@@ -45,14 +44,18 @@ public class QRCodeService {
     @Value("${qr.code.hmac.secret}")
     private String hmacSecret;
 
-    public String generateAndSaveQRCode(UUID ticketId, String content) {
+    @Value("${app.url}")
+    private String appUrl;
+
+    public String generateAndSaveQRCode(UUID ticketId, String verificationToken) {
         try {
             Path directory = Paths.get(qrCodeDirectory);
             if (!Files.exists(directory)) {
                 Files.createDirectories(directory);
             }
 
-            BitMatrix bitMatrix = generateQRCodeMatrix(content);
+            String qrContent = buildVerificationUrl(ticketId, verificationToken);
+            BitMatrix bitMatrix = generateQRCodeMatrix(qrContent);
 
             String fileName = "ticket_" + ticketId.toString() + ".png";
             Path filePath = directory.resolve(fileName);
@@ -78,16 +81,16 @@ public class QRCodeService {
         return qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
     }
 
-    public String buildTicketQRContent(UUID ticketId, UUID eventId, String eventTitle, String userName, String seatInfo) {
-        String data = String.format(
-                "TICKET_ID:%s|EVENT_ID:%s|EVENT:%s|USER:%s|SEATS:%s",
-                ticketId, eventId, eventTitle, userName, seatInfo
-        );
-        
-        String signature = generateHMAC(data);
-        return data + QRCodeService.protectionSignature + signature;
+    private String buildVerificationUrl(UUID ticketId, String verificationToken) {
+        return String.format("%s/verify/%s?token=%s",
+                appUrl,
+                ticketId.toString(),
+                verificationToken);
     }
 
+    public String generateCompactToken(UUID ticketId) {
+        return generateHMAC(ticketId.toString());
+    }
 
     private String generateHMAC(String data) {
         try {
@@ -98,34 +101,19 @@ public class QRCodeService {
             );
             mac.init(secretKeySpec);
             byte[] hmacBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hmacBytes);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hmacBytes);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             logger.error("Error generating HMAC signature: {}", e.getMessage());
             throw new RuntimeException("Failed to generate HMAC signature", e);
         }
     }
 
-    public boolean verifySignature(String qrContent) {
+    public boolean verifyTicketToken(UUID ticketId, String providedToken) {
         try {
-            if (qrContent == null || !qrContent.contains(protectionSignature)) {
-                logger.warn("QR code content does not contain signature separator");
-                return false;
-            }
-
-            int signatureIndex = qrContent.lastIndexOf(protectionSignature);
-            if (signatureIndex == -1) {
-                logger.warn("Invalid QR code format: signature separator not found");
-                return false;
-            }
-
-            String data = qrContent.substring(0, signatureIndex);
-            String providedSignature = qrContent.substring(signatureIndex + protectionSignature.length());
-
-            String expectedSignature = generateHMAC(data);
-
-            return constantTimeEquals(providedSignature, expectedSignature);
+            String expectedToken = generateCompactToken(ticketId);
+            return constantTimeEquals(providedToken, expectedToken);
         } catch (Exception e) {
-            logger.error("Error verifying QR code signature: {}", e.getMessage());
+            logger.error("Error verifying ticket token: {}", e.getMessage());
             return false;
         }
     }
@@ -142,38 +130,5 @@ public class QRCodeService {
             result |= a.charAt(i) ^ b.charAt(i);
         }
         return result == 0;
-    }
-
-    public Map<String, String> parseQRCodeContent(String qrContent) {
-        if (qrContent == null || !qrContent.contains(protectionSignature)) {
-            logger.warn("Invalid QR code format");
-            return null;
-        }
-
-        int signatureIndex = qrContent.lastIndexOf(protectionSignature);
-        String data = qrContent.substring(0, signatureIndex);
-
-        Map<String, String> ticketData = new HashMap<>();
-        String[] parts = data.split("\\|");
-
-        for (String part : parts) {
-            int colonIndex = part.indexOf(':');
-            if (colonIndex > 0 && colonIndex < part.length() - 1) {
-                String key = part.substring(0, colonIndex);
-                String value = part.substring(colonIndex + 1);
-                ticketData.put(key, value);
-            }
-        }
-
-        return ticketData;
-    }
-
-    public Map<String, String> validateAndParse(String qrContent) {
-        if (!verifySignature(qrContent)) {
-            logger.warn("QR code signature verification failed");
-            return null;
-        }
-
-        return parseQRCodeContent(qrContent);
     }
 }

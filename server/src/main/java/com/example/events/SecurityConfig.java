@@ -43,7 +43,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/users/all").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/tickets/all").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/tickets/validate-qr").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/verify/**").hasRole("ADMIN")
 
                         .requestMatchers("/api/events/**").permitAll()
                         .requestMatchers("/api/seats/**").permitAll()
