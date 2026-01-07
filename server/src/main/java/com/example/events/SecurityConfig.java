@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users/signup").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/role/**").permitAll()
+                        .requestMatchers("/api/webhooks/**").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/users/all").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/tickets/all").hasRole("ADMIN")
@@ -48,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/events/**").permitAll()
                         .requestMatchers("/api/seats/**").permitAll()
                         .requestMatchers("/api/sections/**").permitAll()
+                        .requestMatchers("/api/payments/**").authenticated()
                         .requestMatchers("/api/tickets/**").authenticated()
                         .requestMatchers("/api/users/**").authenticated()
 
