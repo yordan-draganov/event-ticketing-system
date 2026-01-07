@@ -2,6 +2,7 @@ package com.example.events.controller;
 
 import com.example.events.DTO.TicketCreateDTO;
 import com.example.events.service.TicketService;
+import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.*;
 import com.stripe.net.Webhook;
@@ -17,14 +18,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/webhooks")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class StripeWebhookController {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
+    private static final Pattern UUID_PATTERN = Pattern.compile(
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    );
 
     @Value("${stripe.webhook.secret:}")
     private String webhookSecret;
@@ -36,90 +40,180 @@ public class StripeWebhookController {
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader) {
 
+        if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
+            logger.error("Webhook secret is not configured. Rejecting webhook for security.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Webhook secret not configured");
+        }
+
         Event event;
         try {
-            event = Webhook.constructEvent(
-                    payload,
-                    sigHeader,
-                    webhookSecret.isEmpty() ? null : webhookSecret
-            );
+            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
             logger.error("Webhook signature verification failed", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
+        } catch (Exception e) {
+            logger.error("Error constructing webhook event: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid webhook payload");
         }
-
 
         String eventType = event.getType();
-        logger.info("Received webhook event: {}", eventType);
+        String eventId = event.getId();
+        logger.info("Received webhook event: {} (id: {})", eventType, eventId);
 
-        switch (eventType) {
-            case "payment_intent.succeeded":
-                handlePaymentSucceeded(event);
-                break;
+        try {
+            switch (eventType) {
+                case "payment_intent.succeeded":
+                    handlePaymentSucceeded(event);
+                    break;
 
-            case "payment_intent.payment_failed":
-                handlePaymentFailed(event);
-                break;
+                case "payment_intent.payment_failed":
+                    handlePaymentFailed(event);
+                    break;
 
-            case "payment_intent.canceled":
-                logger.info("Payment intent canceled: {}", event.getId());
-                break;
+                case "payment_intent.canceled":
+                    logger.info("Payment intent canceled: {}", eventId);
+                    break;
 
-            default:
-                logger.info("Unhandled event type: {}", eventType);
+                default:
+                    logger.info("Unhandled event type: {}", eventType);
+            }
+
+            return ResponseEntity.ok("Webhook processed successfully");
+        } catch (Exception e) {
+            logger.error("Error processing webhook event {} (id: {}): {}", eventType, eventId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing webhook: " + e.getMessage());
         }
-
-        return ResponseEntity.ok("Webhook received");
     }
 
     private void handlePaymentSucceeded(Event event) {
+        EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
+        PaymentIntent paymentIntent;
+
         try {
-            PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer()
-                    .getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize PaymentIntent"));
-
-            logger.info("Payment succeeded: {}", paymentIntent.getId());
-
-            Map<String, String> metadata = paymentIntent.getMetadata();
-
-            UUID userId = UUID.fromString(metadata.get("userId"));
-            UUID eventId = UUID.fromString(metadata.get("eventId"));
-            String seatIdsStr = metadata.get("seatIds");
-
-            seatIdsStr = seatIdsStr.substring(1, seatIdsStr.length() - 1);
-            String[] seatIdArray = seatIdsStr.split(",");
-            List<UUID> seatIds = new ArrayList<>();
-            for (String seatId : seatIdArray) {
-                seatIds.add(UUID.fromString(seatId.trim()));
+            if (dataObjectDeserializer.getObject().isPresent()) {
+                paymentIntent = (PaymentIntent) dataObjectDeserializer.getObject().get();
+            } else {
+                logger.warn("Safe deserialization failed for event {}. Attempting unsafe deserialization.", event.getId());
+                paymentIntent = (PaymentIntent) dataObjectDeserializer.deserializeUnsafe();
             }
-
-            TicketCreateDTO ticketRequest = new TicketCreateDTO();
-            ticketRequest.setEventId(eventId);
-            ticketRequest.setSeatIds(seatIds);
-
-            ticketService.createTicket(ticketRequest, userId);
-
-            logger.info("Ticket created successfully via webhook for payment: {}", paymentIntent.getId());
-
-        } catch (Exception e) {
-            logger.error("Error handling payment_intent.succeeded: {}", e.getMessage(), e);
+        } catch (EventDataObjectDeserializationException e) {
+            logger.error("Failed to deserialize PaymentIntent from event {}: {}", event.getId(), e.getMessage(), e);
+            return;
         }
+
+        String paymentIntentId = paymentIntent.getId();
+        logger.info("Processing payment succeeded: {}", paymentIntentId);
+
+        if (!"succeeded".equals(paymentIntent.getStatus())) {
+            logger.warn("Payment intent {} status is '{}', not 'succeeded'. Skipping ticket creation.", 
+                    paymentIntentId, paymentIntent.getStatus());
+            return;
+        }
+
+        Map<String, String> metadata = paymentIntent.getMetadata();
+        if (metadata == null || metadata.isEmpty()) {
+            logger.error("No metadata found for payment: {}", paymentIntentId);
+            return;
+        }
+
+        String userIdStr = metadata.get("userId");
+        if (userIdStr == null || userIdStr.trim().isEmpty() || !UUID_PATTERN.matcher(userIdStr.trim()).matches()) {
+            logger.error("Invalid or missing userId in metadata for payment: {}", paymentIntentId);
+            return;
+        }
+        UUID userId;
+        try {
+            userId = UUID.fromString(userIdStr.trim());
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid userId format in metadata for payment: {}", paymentIntentId);
+            return;
+        }
+
+        String eventIdStr = metadata.get("eventId");
+        if (eventIdStr == null || eventIdStr.trim().isEmpty() || !UUID_PATTERN.matcher(eventIdStr.trim()).matches()) {
+            logger.error("Invalid or missing eventId in metadata for payment: {}", paymentIntentId);
+            return;
+        }
+        UUID eventId;
+        try {
+            eventId = UUID.fromString(eventIdStr.trim());
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid eventId format in metadata for payment: {}", paymentIntentId);
+            return;
+        }
+
+        String seatIdsStr = metadata.get("seatIds");
+        List<UUID> seatIds = parseSeatIds(seatIdsStr, paymentIntentId);
+
+        if (seatIds.isEmpty()) {
+            logger.error("No valid seatIds found in metadata for payment: {}", paymentIntentId);
+            return;
+        }
+
+        TicketCreateDTO ticketRequest = new TicketCreateDTO();
+        ticketRequest.setEventId(eventId);
+        ticketRequest.setSeatIds(seatIds);
+
+        ticketService.createTicket(ticketRequest, userId);
+
+        logger.info("Ticket created successfully via webhook for payment: {}", paymentIntentId);
+    }
+
+    private List<UUID> parseSeatIds(String seatIdsStr, String paymentIntentId) {
+        List<UUID> seatIds = new ArrayList<>();
+        
+        if (seatIdsStr == null || seatIdsStr.trim().isEmpty()) {
+            return seatIds;
+        }
+
+        String cleaned = seatIdsStr.trim();
+        if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
+            cleaned = cleaned.substring(1, cleaned.length() - 1).trim();
+        }
+
+        if (cleaned.isEmpty()) {
+            return seatIds;
+        }
+
+        String[] seatIdArray = cleaned.split(",");
+        for (String seatId : seatIdArray) {
+            String trimmed = seatId.trim();
+            if (!trimmed.isEmpty()) {
+                if (!UUID_PATTERN.matcher(trimmed).matches()) {
+                    logger.warn("Invalid UUID format in seatIds for payment {}: {}", paymentIntentId, trimmed);
+                    continue;
+                }
+                try {
+                    seatIds.add(UUID.fromString(trimmed));
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Failed to parse UUID in seatIds for payment {}: {}", paymentIntentId, trimmed);
+                }
+            }
+        }
+
+        return seatIds;
     }
 
     private void handlePaymentFailed(Event event) {
+        EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
+        PaymentIntent paymentIntent;
+
         try {
-            PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer()
-                    .getObject()
-                    .orElseThrow(() -> new RuntimeException("Failed to deserialize PaymentIntent"));
-
-            logger.warn("Payment failed: {} - Reason: {}",
-                    paymentIntent.getId(),
-                    paymentIntent.getLastPaymentError() != null ?
-                            paymentIntent.getLastPaymentError().getMessage() : "Unknown");
-
-
-        } catch (Exception e) {
-            logger.error("Error handling payment_intent.payment_failed: {}", e.getMessage(), e);
+            if (dataObjectDeserializer.getObject().isPresent()) {
+                paymentIntent = (PaymentIntent) dataObjectDeserializer.getObject().get();
+            } else {
+                paymentIntent = (PaymentIntent) dataObjectDeserializer.deserializeUnsafe();
+            }
+        } catch (EventDataObjectDeserializationException e) {
+            logger.error("Failed to deserialize PaymentIntent from event {}: {}", event.getId(), e.getMessage(), e);
+            return;
         }
+
+        String errorMessage = paymentIntent.getLastPaymentError() != null ?
+                paymentIntent.getLastPaymentError().getMessage() : "Unknown";
+        
+        logger.warn("Payment failed: {} - Reason: {}", paymentIntent.getId(), errorMessage);
     }
 }

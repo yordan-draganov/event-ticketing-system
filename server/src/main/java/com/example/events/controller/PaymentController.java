@@ -5,10 +5,8 @@ import com.example.events.DTO.PaymentStatusResponse;
 import com.example.events.DTO.PaymentResponse;
 import com.example.events.DTO.PaymentDTO;
 import com.example.events.DTO.PaymentConfirmDTO;
-import com.example.events.DTO.TicketCreateDTO;
 import com.example.events.DTO.TicketResponse;
 import com.example.events.exception.UnauthorizedException;
-import com.example.events.exception.ValidationException;
 import com.example.events.service.StripeService;
 import com.example.events.service.TicketService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -64,18 +62,10 @@ public class PaymentController {
         logger.info("Confirming payment {} for user: {}", request.getPaymentIntentId(), userId);
 
         try {
-            if (!stripeService.isPaymentSuccessful(request.getPaymentIntentId())) {
-                return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
-                        .body(ErrorResponse.builder()
-                                .status(HttpStatus.PAYMENT_REQUIRED.value())
-                                .error("Payment Required")
-                                .message("Payment not successful")
-                                .build());
-            }
-
             com.stripe.model.PaymentIntent paymentIntent =
                     stripeService.getPaymentIntent(request.getPaymentIntentId());
 
+            // Verify payment belongs to user
             String metadataUserId = paymentIntent.getMetadata().get("userId");
             if (!userId.toString().equals(metadataUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -86,33 +76,51 @@ public class PaymentController {
                                 .build());
             }
 
-            String seatIdsStr = paymentIntent.getMetadata().get("seatIds");
-            String eventIdStr = paymentIntent.getMetadata().get("eventId");
-
-            seatIdsStr = seatIdsStr.substring(1, seatIdsStr.length() - 1);
-            String[] seatIdArray = seatIdsStr.split(",");
-            List<UUID> seatIds = new ArrayList<>();
-            for (String seatId : seatIdArray) {
-                seatIds.add(UUID.fromString(seatId.trim()));
+            // Check payment status
+            String paymentStatus = paymentIntent.getStatus();
+            if (!"succeeded".equals(paymentStatus)) {
+                return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                        .body(ErrorResponse.builder()
+                                .status(HttpStatus.PAYMENT_REQUIRED.value())
+                                .error("Payment Required")
+                                .message("Payment status: " + paymentStatus)
+                                .build());
             }
 
-            TicketCreateDTO ticketRequest = new TicketCreateDTO();
-            ticketRequest.setEventId(UUID.fromString(eventIdStr));
-            ticketRequest.setSeatIds(seatIds);
+            // Extract metadata
+            String eventIdStr = paymentIntent.getMetadata().get("eventId");
+            String seatIdsStr = paymentIntent.getMetadata().get("seatIds");
+            
+            if (eventIdStr == null || seatIdsStr == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ErrorResponse.builder()
+                                .status(HttpStatus.BAD_REQUEST.value())
+                                .error("Bad Request")
+                                .message("Payment metadata is incomplete")
+                                .build());
+            }
 
-            TicketResponse ticket = ticketService.createTicket(ticketRequest, userId);
+            UUID eventId = UUID.fromString(eventIdStr);
+            
+            // Parse seat IDs
+            List<UUID> seatIds = parseSeatIds(seatIdsStr);
 
-            logger.info("Ticket created successfully after payment confirmation: {}", ticket.getId());
-            return ResponseEntity.ok(ticket);
+            // Try to find existing ticket created by webhook
+            TicketResponse ticket = ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds);
 
-        } catch (ValidationException e) {
-            logger.warn("Seat reservation failed after payment: {}", e.getMessage());
+            if (ticket != null) {
+                logger.info("Ticket found for payment confirmation: {}", ticket.getId());
+                return ResponseEntity.ok(ticket);
+            }
 
-            return ResponseEntity.status(HttpStatus.CONFLICT)
+            // Ticket not created yet - webhook might be processing
+            // Return processing status (client should poll or wait for webhook)
+            logger.info("Payment succeeded but ticket not yet created. Webhook may be processing.");
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
                     .body(ErrorResponse.builder()
-                            .status(HttpStatus.CONFLICT.value())
-                            .error("Conflict")
-                            .message("Seats no longer available. Refund will be processed automatically.")
+                            .status(HttpStatus.ACCEPTED.value())
+                            .error("Processing")
+                            .message("Payment successful. Ticket is being processed. Please wait a moment and refresh.")
                             .build());
 
         } catch (Exception e) {
@@ -122,9 +130,34 @@ public class PaymentController {
                     .body(ErrorResponse.builder()
                             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                             .error("Internal Server Error")
-                            .message("Failed to process ticket: " + e.getMessage())
+                            .message("Failed to confirm payment: " + e.getMessage())
                             .build());
         }
+    }
+
+    private List<UUID> parseSeatIds(String seatIdsStr) {
+        List<UUID> seatIds = new ArrayList<>();
+        if (seatIdsStr == null || seatIdsStr.trim().isEmpty()) {
+            return seatIds;
+        }
+
+        String cleaned = seatIdsStr.trim();
+        if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
+            cleaned = cleaned.substring(1, cleaned.length() - 1).trim();
+        }
+
+        if (cleaned.isEmpty()) {
+            return seatIds;
+        }
+
+        String[] seatIdArray = cleaned.split(",");
+        for (String seatId : seatIdArray) {
+            String trimmed = seatId.trim();
+            if (!trimmed.isEmpty()) {
+                seatIds.add(UUID.fromString(trimmed));
+            }
+        }
+        return seatIds;
     }
 
     @GetMapping("/status/{paymentIntentId}")

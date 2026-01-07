@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -179,6 +180,37 @@ public class TicketService {
         response.setSeats(seatResponses);
 
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public TicketResponse findTicketByUserEventAndSeats(UUID userId, UUID eventId, List<UUID> seatIds) {
+        logger.info("Finding ticket for user {}, event {}, with {} seats", userId, eventId, seatIds.size());
+
+        List<Ticket> tickets = ticketRepository.findByUserIdAndEventId(userId, eventId);
+
+        tickets = tickets.stream()
+                .filter(ticket -> ticket.getStatus() == TicketStatus.confirmed)
+                .collect(Collectors.toList());
+
+        for (Ticket ticket : tickets) {
+            List<Seat> ticketSeats = seatRepository.findByTicketId(ticket.getId());
+            Set<UUID> ticketSeatIds = ticketSeats.stream()
+                    .map(Seat::getId)
+                    .collect(Collectors.toSet());
+
+            Set<UUID> requestedSeatIds = new HashSet<>(seatIds);
+
+            if (ticketSeatIds.size() == requestedSeatIds.size() && 
+                ticketSeatIds.containsAll(requestedSeatIds)) {
+                TicketResponse response = ticketMapper.toResponse(ticket);
+                response.setSeatCount(ticketSeats.size());
+                logger.info("Found matching ticket: {}", ticket.getId());
+                return response;
+            }
+        }
+
+        logger.info("No matching ticket found for user {}, event {}, seats {}", userId, eventId, seatIds);
+        return null;
     }
 
     @Transactional(readOnly = true)
