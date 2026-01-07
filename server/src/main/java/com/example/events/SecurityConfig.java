@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/events/**").permitAll()
                         .requestMatchers("/api/seats/**").permitAll()
                         .requestMatchers("/api/sections/**").permitAll()
+                        .requestMatchers("/api/payments/**").authenticated()
                         .requestMatchers("/api/tickets/**").authenticated()
                         .requestMatchers("/api/users/**").authenticated()
 
