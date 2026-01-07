@@ -21,6 +21,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -80,7 +81,10 @@ public class StripeService {
             Section section = seats.get(0).getSection();
             BigDecimal totalPrice = section.getPrice().multiply(BigDecimal.valueOf(seats.size()));
 
-            long amountInCents = totalPrice.multiply(BigDecimal.valueOf(100)).longValue();
+            long amountInCents = totalPrice
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .longValueExact();
 
             Map<String, String> metadata = new HashMap<>();
             metadata.put("userId", userId.toString());
@@ -136,6 +140,19 @@ public class StripeService {
         } catch (StripeException e) {
             logger.error("Error checking payment status: {}", e.getMessage());
             return false;
+        }
+    }
+
+    public void cancelPaymentIntent(String paymentIntentId) {
+        try {
+            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+            if (!"succeeded".equals(paymentIntent.getStatus()) &&
+                    !"canceled".equals(paymentIntent.getStatus())) {
+                paymentIntent.cancel();
+                logger.info("PaymentIntent cancelled: {}", paymentIntentId);
+            }
+        } catch (StripeException e) {
+            logger.error("Error cancelling PaymentIntent: {}", e.getMessage());
         }
     }
 }
