@@ -1,4 +1,4 @@
-package com.example.events;
+package com.example.events.config;
 
 import com.example.events.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
@@ -19,9 +19,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final WebConfig webConfig;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, WebConfig webConfig) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.webConfig = webConfig;
     }
 
     @Bean
@@ -34,9 +36,10 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
 
-                .cors(cors -> cors.configure(http))
+                .cors(cors -> cors.configurationSource(webConfig.corsConfigurationSource()))
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/signup").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/role/**").permitAll()
