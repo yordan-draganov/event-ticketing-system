@@ -3,6 +3,7 @@ package com.example.events.controller;
 import com.example.events.DTO.SeatResponse;
 import com.example.events.service.SeatService;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +13,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/seats")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
+@Tag(name = "Seats", description = "Seat availability and information endpoints")
 public class SeatController {
 
     private final SeatService seatService;

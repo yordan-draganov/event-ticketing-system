@@ -2,6 +2,7 @@ package com.example.events.controller;
 
 import com.example.events.DTO.SectionResponse;
 import com.example.events.service.SectionService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +13,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/sections")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
+@Tag(name = "Sections", description = "Event section information endpoints")
 public class SectionController {
 
     private final SectionService sectionService;

@@ -1,4 +1,4 @@
-package com.example.events;
+package com.example.events.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
