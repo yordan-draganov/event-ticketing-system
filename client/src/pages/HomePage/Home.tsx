@@ -1,8 +1,13 @@
+// src/pages/HomePage/HomePage.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Header } from '../../components/Header/Header';
 import { EventCard } from '../../components/EventCard/EventCard';
 import { LoginModal } from '../../components/LoginModal/LoginModal';
 import { SignupModal } from '../../components/SignupModal/SignupModal';
+import { ProfileModal } from '../../components/ProfileModal/ProfileModal';
+import { ChangeNameModal } from '../../components/ChangeNameModal/ChangeNameModal';
+import { ChangePasswordModal } from '../../components/ChangePasswordModal/ChangePasswordModal';
 import { useEvents } from '../../hooks/useEvents';
 import { useAuth } from '../../hooks/useAuth';
 import { useFilters } from '../../hooks/useFilters';
@@ -11,11 +16,17 @@ import type { LoginRequest, SignupRequest } from '../../generated/api';
 const HomePage: React.FC = () => {
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [changeNameOpen, setChangeNameOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userId, setUserId] = useState('');
+  const [userRole, setUserRole] = useState('');
 
   const { events, loading: eventsLoading } = useEvents();
-  const { login, signup, logout, loading, error, success, setSuccess } = useAuth();
+  const { login, signup, logout, changeName, changePassword, loading, error, success, setSuccess, setError } = useAuth();
   const { 
     searchQuery, 
     setSearchQuery, 
@@ -39,9 +50,16 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const name = localStorage.getItem('userName');
+    const email = localStorage.getItem('userEmail');
+    const id = localStorage.getItem('userId');
+    const role = localStorage.getItem('userRole');
+    
     if (token && name) {
       setIsAuthenticated(true);
       setUserName(name);
+      setUserEmail(email || '');
+      setUserId(id || '');
+      setUserRole(role || 'user');
     }
   }, []);
 
@@ -51,6 +69,9 @@ const HomePage: React.FC = () => {
       setLoginOpen(false);
       setIsAuthenticated(true);
       setUserName(localStorage.getItem('userName') || '');
+      setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserId(localStorage.getItem('userId') || '');
+      setUserRole(localStorage.getItem('userRole') || 'user');
     }
   };
 
@@ -60,6 +81,9 @@ const HomePage: React.FC = () => {
       setSignupOpen(false);
       setIsAuthenticated(true);
       setUserName(localStorage.getItem('userName') || '');
+      setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserId(localStorage.getItem('userId') || '');
+      setUserRole(localStorage.getItem('userRole') || 'user');
     }
   };
 
@@ -67,6 +91,50 @@ const HomePage: React.FC = () => {
     await logout();
     setIsAuthenticated(false);
     setUserName('');
+    setUserEmail('');
+    setUserId('');
+    setUserRole('');
+  };
+
+  const handleProfileClick = () => {
+    setProfileOpen(true);
+  };
+
+  const handleChangeNameClick = () => {
+    setChangeNameOpen(true);
+    setError(''); 
+  };
+
+  const handleChangePasswordClick = () => {
+    setChangePasswordOpen(true);
+    setError(''); 
+  };
+
+  const handleChangeName = async (newName: string) => {
+    const result = await changeName(newName);
+    if (result) {
+      setChangeNameOpen(false);
+      setUserName(newName);
+      const updatedName = localStorage.getItem('userName');
+      if (updatedName) {
+        setUserName(updatedName);
+      }
+    }
+  };
+
+  const handleChangePassword = async (oldPassword: string, newPassword: string) => {
+    const result = await changePassword(oldPassword, newPassword);
+    if (result) {
+      setChangePasswordOpen(false);
+      setIsAuthenticated(false);
+      setUserName('');
+      setUserEmail('');
+      setUserId('');
+      setUserRole('');
+      setTimeout(() => {
+        setLoginOpen(true);
+      }, 1000);
+    }
   };
 
   return (
@@ -74,8 +142,12 @@ const HomePage: React.FC = () => {
       <Header 
         isAuthenticated={isAuthenticated}
         userName={userName}
+        userEmail={userEmail}
         onLoginClick={() => setLoginOpen(true)} 
         onSignupClick={() => setSignupOpen(true)}
+        onProfileClick={handleProfileClick}
+        onChangeNameClick={handleChangeNameClick}
+        onChangePasswordClick={handleChangePasswordClick}
         onLogoutClick={handleLogout}
       />
 
@@ -85,6 +157,17 @@ const HomePage: React.FC = () => {
             <span>{success}</span>
             <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
               ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
+              X
             </button>
           </div>
         </div>
@@ -143,7 +226,8 @@ const HomePage: React.FC = () => {
       <main className="max-w-6xl mx-auto px-4 pb-12">
         {eventsLoading ? (
           <div className="text-center py-12">
-            <p className="text-xl text-gray-500">Loading events...</p>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="text-xl text-gray-500 mt-4">Loading events...</p>
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-12">
@@ -170,6 +254,32 @@ const HomePage: React.FC = () => {
         isOpen={signupOpen}
         onClose={() => setSignupOpen(false)}
         onSignup={handleSignup}
+        loading={loading}
+        error={error}
+      />
+
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        userName={userName}
+        userEmail={userEmail}
+        userId={userId}
+        userRole={userRole}
+      />
+
+      <ChangeNameModal
+        isOpen={changeNameOpen}
+        currentName={userName}
+        onClose={() => setChangeNameOpen(false)}
+        onChangeName={handleChangeName}
+        loading={loading}
+        error={error}
+      />
+
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        onChangePassword={handleChangePassword}
         loading={loading}
         error={error}
       />

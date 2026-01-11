@@ -1,38 +1,47 @@
 import React from 'react';
+import { UserMenu } from '../UserMenu/UserMenu';
 
 interface HeaderProps {
   isAuthenticated: boolean;
   userName?: string;
+  userEmail?: string;
   onLoginClick: () => void;
   onSignupClick: () => void;
+  onProfileClick: () => void;
+  onChangeNameClick: () => void;
+  onChangePasswordClick: () => void;
   onLogoutClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   isAuthenticated, 
   userName,
+  userEmail,
   onLoginClick, 
   onSignupClick,
+  onProfileClick,
+  onChangeNameClick,
+  onChangePasswordClick,
   onLogoutClick 
 }) => {
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-white shadow-sm sticky top-0 z-40">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <h1 className="text-2xl font-bold text-blue-600">EventTicket</h1>
+          <h1 className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition">
+            EventTicket
+          </h1>
+          
           <div className="flex gap-3 items-center">
             {isAuthenticated ? (
-              <>
-                <span className="text-sm text-gray-600">
-                  Welcome, <span className="font-semibold">{userName}</span>
-                </span>
-                <button
-                  onClick={onLogoutClick}
-                  className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                >
-                  Logout
-                </button>
-              </>
+              <UserMenu
+                userName={userName || 'User'}
+                userEmail={userEmail}
+                onProfileClick={onProfileClick}
+                onChangeNameClick={onChangeNameClick}
+                onChangePasswordClick={onChangePasswordClick}
+                onLogoutClick={onLogoutClick}
+              />
             ) : (
               <>
                 <button

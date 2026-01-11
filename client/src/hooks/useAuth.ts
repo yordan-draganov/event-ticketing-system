@@ -44,23 +44,62 @@ export const useAuth = () => {
   };
 
   const logout = async () => {
+    setLoading(true);
     try {
       await ApiClient.logout();
       setSuccess('Logged out successfully');
       return true;
     } catch (err: any) {
-      console.error('Logout error:', err);
-      localStorage.removeItem('token');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userId');
+      console.log('Logout completed (local storage cleared)');
+      setSuccess('Logged out successfully');
       return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeName = async (newName: string) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const response = await ApiClient.changeName(newName);
+      setSuccess('Username changed successfully!');
+      return response;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to change name';
+      setError(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      await ApiClient.changePassword(oldPassword, newPassword);
+      setSuccess('Password changed successfully! Please log in again.');
+      return true;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to change password';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   return { 
     login, 
     signup, 
-    logout, 
+    logout,
+    changeName,
+    changePassword,
     loading, 
     error, 
     success, 

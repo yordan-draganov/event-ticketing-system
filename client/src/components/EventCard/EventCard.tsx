@@ -38,11 +38,11 @@ export const EventCard: React.FC<EventCardProps> = ({ event }) => {
         </div>
 
         <p className="text-sm text-gray-600 mb-2">
-          📅 {formatDate(event.date)} • {formatTime(event.startTime)} - {formatTime(event.endTime)}
+           {formatDate(event.date)} • {formatTime(event.startTime)} - {formatTime(event.endTime)}
         </p>
 
         <p className="text-sm text-gray-600 mb-3">
-          📍 {event.location}
+           {event.location}
         </p>
 
         <p className="text-sm text-gray-700 line-clamp-2 mb-4">
