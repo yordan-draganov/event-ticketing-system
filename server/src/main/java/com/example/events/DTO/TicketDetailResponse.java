@@ -3,6 +3,7 @@ package com.example.events.DTO;
 import com.example.events.model.EventCategory;
 import com.example.events.model.TicketStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -47,7 +48,11 @@ public class TicketDetailResponse {
     private EventCategory eventCategory;
     private String eventImage;
     private String eventOrganizer;
+    @Schema(type = "string", format = "time", example = "11:00:00")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime startTime;
+    @Schema(type = "string", format = "time", example = "12:00:00")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime endTime;
     private BigDecimal latitude;
     private BigDecimal longitude;
