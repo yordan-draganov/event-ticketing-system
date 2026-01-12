@@ -52,7 +52,7 @@ export const Home: React.FC = () => {
 
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
+          <div className="flex gap-2 w-full md:w-auto">
             {categories.map(cat => (
               <button
                 key={cat}

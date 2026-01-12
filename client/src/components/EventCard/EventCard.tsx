@@ -1,18 +1,11 @@
 import React from 'react';
 import type { EventResponse } from '../../generated/api';
+import { formatDateShort } from '../../utils/dateUtils';
 
 interface EventCardProps {
   event: EventResponse;
   onViewDetails: () => void;
 }
-
-const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-};
 
 export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails }) => {
   return (
@@ -35,7 +28,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails }) =>
           </span>
         </div>
         <div className="absolute bottom-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-lg shadow-lg">
-          <p className="text-xs font-bold">{formatDate(event.date)}</p>
+          <p className="text-xs font-bold">{formatDateShort(event.date)}</p>
         </div>
       </div>
 
