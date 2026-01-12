@@ -11,6 +11,7 @@ interface HeaderProps {
   onChangeNameClick: () => void;
   onChangePasswordClick: () => void;
   onLogoutClick: () => void;
+  onHomeClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -22,15 +23,32 @@ export const Header: React.FC<HeaderProps> = ({
   onProfileClick,
   onChangeNameClick,
   onChangePasswordClick,
-  onLogoutClick 
+  onLogoutClick,
+  onHomeClick,
 }) => {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <h1 className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition">
-            EventTicket
-          </h1>
+          <div className="flex items-center gap-8">
+            <h1 
+              onClick={onHomeClick}
+              className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition"
+            >
+              EventMe
+            </h1>
+            
+            {isAuthenticated && (
+              <nav className="hidden md:flex gap-6">
+                <button
+                  onClick={onHomeClick}
+                  className="text-gray-700 hover:text-blue-600 transition font-medium"
+                >
+                  Events
+                </button>
+              </nav>
+            )}
+          </div>
           
           <div className="flex gap-3 items-center">
             {isAuthenticated ? (
