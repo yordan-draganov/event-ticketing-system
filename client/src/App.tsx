@@ -1,23 +1,17 @@
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import HomePage from "./pages/HomePage/Home.tsx";
-// import Payment from "./Payment.tsx"
-import theme from "./theme.ts";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Layout } from './components/Layout/Layout';
+import { Home } from './pages/Home/Home';
 
 function App() {
-  // const eventId = "eventID"
-  // const seatIds = ["seatID"]
-  // const totalPrice = 0
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <HomePage />
-      {/* <Payment
-        eventId={eventId}
-        seatIds={seatIds}
-        totalPrice={totalPrice}
-      /> */}
-    </ThemeProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
