@@ -8,7 +8,7 @@ export const formatDateShort = (date?: Date | string): string => {
   });
 };
 
-export const formatDateLong = (date: Date | string): string => {
+export const formatDateLong = (date?: Date | string): string => {
   if (!date) return '';
   const dateObj = date instanceof Date ? date : new Date(date);
   if (isNaN(dateObj.getTime())) return '';
