@@ -12,6 +12,7 @@ interface HeaderProps {
   onChangePasswordClick: () => void;
   onLogoutClick: () => void;
   onHomeClick: () => void;
+  onMyTicketsClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   onChangePasswordClick,
   onLogoutClick,
   onHomeClick,
+  onMyTicketsClick,
 }) => {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
@@ -45,6 +47,12 @@ export const Header: React.FC<HeaderProps> = ({
                   className="text-gray-700 hover:text-blue-600 transition font-medium"
                 >
                   Events
+                </button>
+                <button
+                  onClick={onMyTicketsClick}
+                  className="text-gray-700 hover:text-blue-600 transition font-medium"
+                >
+                  My Tickets
                 </button>
               </nav>
             )}
