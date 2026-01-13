@@ -103,10 +103,22 @@ public class StripeService {
             TicketResponse ticket = ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds);
 
             if (ticket != null) {
+                logger.info("Ticket already exists for payment {}, returning existing ticket", paymentIntentId);
                 return ResponseEntity.ok(ticket);
             }
 
-            return accepted("Payment successful. Ticket is being processed.");
+            // Ticket doesn't exist, create it
+            logger.info("No ticket found for payment {}, creating new ticket", paymentIntentId);
+            try {
+                TicketCreateDTO ticketRequest = new TicketCreateDTO(eventId, seatIds);
+                
+                TicketResponse createdTicket = ticketService.createTicket(ticketRequest, userId);
+                logger.info("Ticket created successfully with id: {} for payment {}", createdTicket.getId(), paymentIntentId);
+                return ResponseEntity.ok(createdTicket);
+            } catch (Exception e) {
+                logger.error("Failed to create ticket for payment {}: {}", paymentIntentId, e.getMessage(), e);
+                return serverError("Failed to create ticket: " + e.getMessage());
+            }
 
         } catch (Exception e) {
             return serverError(e.getMessage());

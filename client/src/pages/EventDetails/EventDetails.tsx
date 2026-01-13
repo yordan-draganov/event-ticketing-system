@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ApiClient } from '../../services/api.client';
 import type { EventResponse, SectionResponse, SeatResponse } from '../../generated/api';
-import { EventInfo } from './EventInfo';
-import { SectionSelector } from './SectionSelector';
-import { SeatMap } from './SeatMap';
-import { CheckoutSummary } from './CheckoutSummary';
+import { EventInfo } from '../../components/EventDetails/EventInfo';
+import { SectionSelector } from '../../components/EventDetails/SectionSelector';
+import { SeatMap } from '../../components/EventDetails/SeatMap';
+import { CheckoutSummary } from '../../components/EventDetails/CheckoutSummary';
 import { calculateTotal } from '../../utils/eventUtils';
 
 export const EventDetails: React.FC = () => {
@@ -80,7 +80,7 @@ export const EventDetails: React.FC = () => {
   };
 
   const handleBooking = () => {
-    if (!eventId || selectedSeats.size === 0) return;
+    if (!eventId || selectedSeats.size === 0 || !event) return;
     
     const token = localStorage.getItem('token');
     if (!token) {
@@ -88,7 +88,25 @@ export const EventDetails: React.FC = () => {
       navigate('/');
       return;
     }
-    // TODO: payment flow
+
+    const selectedSeatObjects = seats.filter(seat => seat.id && selectedSeats.has(seat.id));
+    
+    const selectedSectionObj = sections.find(s => s.id === selectedSection);
+    
+    if (!selectedSectionObj) {
+      alert('Please select a section');
+      return;
+    }
+
+    navigate('/checkout', {
+      state: {
+        event,
+        sections,
+        selectedSeats: selectedSeatObjects,
+        selectedSection: selectedSectionObj,
+        totalPrice: calculateTotal(sections, selectedSection, selectedSeats.size),
+      }
+    });
   };
 
   if (loading) {
