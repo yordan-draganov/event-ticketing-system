@@ -21,3 +21,4 @@ export const groupSeatsByRow = (seats: SeatResponse[]): Record<string, SeatRespo
   }, {} as Record<string, SeatResponse[]>);
 };
 
+
