@@ -133,6 +133,7 @@ export const Layout: React.FC = () => {
         }}
         onLogoutClick={handleLogout}
         onHomeClick={() => navigate('/')}
+        onMyTicketsClick={() => navigate('/my-tickets')}
       />
 
       {success && (
