@@ -69,10 +69,10 @@ export class ApiClient {
     
     if (response.token) {
       localStorage.setItem('token', response.token);
-      localStorage.setItem('userName', response.name);
-      localStorage.setItem('userId', response.userId);
-      localStorage.setItem('userEmail', response.email);
-      localStorage.setItem('userRole', response.role);
+      localStorage.setItem('userName', response.name!);
+      localStorage.setItem('userId', response.userId!);
+      localStorage.setItem('userEmail', response.email!);
+      localStorage.setItem('userRole', response.role!);
     }
     
     return response;
@@ -84,10 +84,10 @@ export class ApiClient {
     
     if (response.token) {
       localStorage.setItem('token', response.token);
-      localStorage.setItem('userName', response.name);
-      localStorage.setItem('userId', response.userId);
-      localStorage.setItem('userEmail', response.email);
-      localStorage.setItem('userRole', response.role);
+      localStorage.setItem('userName', response.name!);
+      localStorage.setItem('userId', response.userId!);
+      localStorage.setItem('userEmail', response.email!);
+      localStorage.setItem('userRole', response.role!);
     }
     
     return response;
@@ -98,7 +98,6 @@ export class ApiClient {
       const { usersApi } = getApis();
       const response = await usersApi.logout();
       
-      // Clear all stored data
       localStorage.removeItem('token');
       localStorage.removeItem('userName');
       localStorage.removeItem('userId');
