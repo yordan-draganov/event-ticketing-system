@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onHomeClick}
               className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition"
             >
-              EventMe
+              Eventsly
             </h1>
             
             {isAuthenticated && (

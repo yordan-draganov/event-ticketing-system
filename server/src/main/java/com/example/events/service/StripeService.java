@@ -1,6 +1,7 @@
 package com.example.events.service;
 
 import com.example.events.DTO.*;
+import com.example.events.exception.ValidationException;
 import com.example.events.model.Event;
 import com.example.events.model.Seat;
 import com.example.events.exception.ResourceNotFoundException;
@@ -107,7 +108,6 @@ public class StripeService {
                 return ResponseEntity.ok(ticket);
             }
 
-            // Ticket doesn't exist, create it
             logger.info("No ticket found for payment {}, creating new ticket", paymentIntentId);
             try {
                 TicketCreateDTO ticketRequest = new TicketCreateDTO(eventId, seatIds);
@@ -152,12 +152,27 @@ public class StripeService {
 
     private List<UUID> parseSeatIds(String seatIdsStr) {
         List<UUID> result = new ArrayList<>();
-        if (seatIdsStr == null) return result;
-
-        seatIdsStr = seatIdsStr.replace("[", "").replace("]", "");
-        for (String id : seatIdsStr.split(",")) {
-            result.add(UUID.fromString(id.trim()));
+        if (seatIdsStr == null || seatIdsStr.trim().isEmpty()) {
+            return result;
         }
+
+        try {
+            seatIdsStr = seatIdsStr.replace("[", "").replace("]", "").trim();
+            if (seatIdsStr.isEmpty()) {
+                return result;
+            }
+
+            for (String id : seatIdsStr.split(",")) {
+                String trimmedId = id.trim();
+                if (!trimmedId.isEmpty()) {
+                    result.add(UUID.fromString(trimmedId));
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid UUID format in seat IDs: {}", seatIdsStr, e);
+            throw new ValidationException("Invalid seat ID format");
+        }
+
         return result;
     }
 

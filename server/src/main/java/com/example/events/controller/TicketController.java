@@ -20,7 +20,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Tag(name = "Tickets", description = "Ticket management and retrieval endpoints")
 @SecurityRequirement(name = "Bearer Authentication")
 public class TicketController {

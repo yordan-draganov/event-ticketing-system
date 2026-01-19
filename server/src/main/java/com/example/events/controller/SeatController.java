@@ -13,7 +13,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/seats")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 @Tag(name = "Seats", description = "Seat availability and information endpoints")
 public class SeatController {
 
