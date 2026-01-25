@@ -120,6 +120,7 @@ export const Layout: React.FC = () => {
         isAuthenticated={isAuthenticated}
         userName={userName}
         userEmail={userEmail}
+        userRole={userRole}
         onLoginClick={() => setLoginOpen(true)} 
         onSignupClick={() => setSignupOpen(true)}
         onProfileClick={() => setProfileOpen(true)}
@@ -134,6 +135,7 @@ export const Layout: React.FC = () => {
         onLogoutClick={handleLogout}
         onHomeClick={() => navigate('/')}
         onMyTicketsClick={() => navigate('/my-tickets')}
+        onAdminDashboardClick={() => navigate('/admin/dashboard')}
       />
 
       {success && (
