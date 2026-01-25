@@ -6,6 +6,7 @@ import { MyTickets } from './pages/MyTickets/MyTickets';
 import { Checkout } from './pages/Checkout/Checkout';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AdminDashboard } from './pages/AdminDashboard/AdminDashboard';
+import { AdminRoute } from './components/AdminRoute/AdminRoute';
 
 function App() {
   return (
@@ -17,7 +18,14 @@ function App() {
             <Route path="events/:eventId" element={<EventDetails />} />
             <Route path="my-tickets" element={<MyTickets />} />
             <Route path="checkout" element={<Checkout />} />
-            <Route path="admin/dashboard" element={<AdminDashboard />} />
+            <Route 
+              path="admin/dashboard" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
