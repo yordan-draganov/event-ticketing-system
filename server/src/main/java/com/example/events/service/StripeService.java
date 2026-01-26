@@ -7,7 +7,6 @@ import com.example.events.model.Seat;
 import com.example.events.exception.ResourceNotFoundException;
 import com.example.events.repository.EventRepository;
 import com.example.events.repository.SeatRepository;
-import com.example.events.service.TicketService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;

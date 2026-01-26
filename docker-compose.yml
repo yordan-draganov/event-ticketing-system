@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: events_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 4008
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -16,11 +16,6 @@ services:
       - ./server/database.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -32,11 +27,6 @@ services:
       - redis_data:/data
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
 
   backend:
     build:
@@ -48,8 +38,8 @@ services:
       - "8081:8081"
     environment:
       DB_URL: jdbc:postgresql://db:5432/events_db
-      DB_USERNAME: postgres
-      DB_PASSWORD: 4008
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_DRIVER: org.postgresql.Driver
       
       JPA_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
