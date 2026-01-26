@@ -20,7 +20,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Tag(name = "Payments", description = "Stripe payment processing endpoints")
 @SecurityRequirement(name = "BearerAuth")
 public class PaymentController {

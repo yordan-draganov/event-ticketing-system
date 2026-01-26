@@ -17,7 +17,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/events")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Tag(name = "Events", description = "Event management operations")
 public class EventController {
 

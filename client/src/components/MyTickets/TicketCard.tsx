@@ -40,8 +40,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 break-words">
                 {ticket.eventTitle}
               </h3>
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
-                {ticket.status.toUpperCase()}
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status!)}`}>
+                {ticket.status!.toUpperCase()}
               </span>
             </div>
           </div>
@@ -69,7 +69,6 @@ export const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
             <div>
               <span className="text-sm text-gray-500">Total Price</span>

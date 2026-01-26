@@ -4,19 +4,23 @@ import React, { useState, useRef, useEffect } from 'react';
 interface UserMenuProps {
   userName: string;
   userEmail?: string;
+  userRole?: string;
   onProfileClick: () => void;
   onChangeNameClick: () => void;
   onChangePasswordClick: () => void;
   onLogoutClick: () => void;
+  onAdminDashboardClick?: () => void;
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({
   userName,
   userEmail,
+  userRole,
   onProfileClick,
   onChangeNameClick,
   onChangePasswordClick,
   onLogoutClick,
+  onAdminDashboardClick
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

@@ -33,8 +33,6 @@ CREATE TABLE events (
     organizer VARCHAR(255),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    latitude DECIMAL(10, 7),
-    longitude DECIMAL(10, 7),
     is_finished BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

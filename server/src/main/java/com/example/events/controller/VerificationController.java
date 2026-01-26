@@ -12,7 +12,6 @@ import java.util.UUID;
 
 @Controller
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class VerificationController {
 
     private final TicketService ticketService;

@@ -37,8 +37,6 @@ public interface TicketMapper {
     @Mapping(source = "event.organizer", target = "eventOrganizer")
     @Mapping(source = "event.startTime", target = "startTime")
     @Mapping(source = "event.endTime", target = "endTime")
-    @Mapping(source = "event.latitude", target = "latitude")
-    @Mapping(source = "event.longitude", target = "longitude")
     @Mapping(source = "section.id", target = "sectionId")
     @Mapping(source = "section.name", target = "sectionName")
     @Mapping(target = "seatCount", ignore = true)

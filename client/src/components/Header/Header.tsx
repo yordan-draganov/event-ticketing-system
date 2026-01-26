@@ -5,6 +5,7 @@ interface HeaderProps {
   isAuthenticated: boolean;
   userName?: string;
   userEmail?: string;
+  userRole?: string;
   onLoginClick: () => void;
   onSignupClick: () => void;
   onProfileClick: () => void;
@@ -13,12 +14,14 @@ interface HeaderProps {
   onLogoutClick: () => void;
   onHomeClick: () => void;
   onMyTicketsClick: () => void;
+  onAdminDashboardClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   isAuthenticated, 
   userName,
   userEmail,
+  userRole,
   onLoginClick, 
   onSignupClick,
   onProfileClick,
@@ -27,7 +30,10 @@ export const Header: React.FC<HeaderProps> = ({
   onLogoutClick,
   onHomeClick,
   onMyTicketsClick,
+  onAdminDashboardClick,
 }) => {
+  const isAdmin = userRole === 'admin';
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onHomeClick}
               className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition"
             >
-              EventMe
+              Eventsly
             </h1>
             
             {isAuthenticated && (
@@ -54,6 +60,17 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   My Tickets
                 </button>
+                {isAdmin && (
+                  <button
+                    onClick={onAdminDashboardClick}
+                    className="text-gray-700 hover:text-blue-600 transition font-medium flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Admin
+                  </button>
+                )}
               </nav>
             )}
           </div>
@@ -63,10 +80,12 @@ export const Header: React.FC<HeaderProps> = ({
               <UserMenu
                 userName={userName || 'User'}
                 userEmail={userEmail}
+                userRole={userRole}
                 onProfileClick={onProfileClick}
                 onChangeNameClick={onChangeNameClick}
                 onChangePasswordClick={onChangePasswordClick}
                 onLogoutClick={onLogoutClick}
+                onAdminDashboardClick={isAdmin ? onAdminDashboardClick : undefined}
               />
             ) : (
               <>
