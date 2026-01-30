@@ -64,12 +64,9 @@ export class ApiClient {
   static async login(data: LoginRequest): Promise<AuthResponse> {
     const { usersApi } = getApis();
     const response = await usersApi.login({ loginRequest: data });
-
-    console.log(response.token);
     
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('userName', response.name!);
+    if (response.name) {
+      localStorage.setItem('userName', response.name);
       localStorage.setItem('userId', response.userId!);
       localStorage.setItem('userEmail', response.email!);
       localStorage.setItem('userRole', response.role!);
@@ -82,9 +79,8 @@ export class ApiClient {
     const { usersApi } = getApis();
     const response = await usersApi.signUp({ signupRequest: data });
     
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('userName', response.name!);
+    if (response.name) {
+      localStorage.setItem('userName', response.name);
       localStorage.setItem('userId', response.userId!);
       localStorage.setItem('userEmail', response.email!);
       localStorage.setItem('userRole', response.role!);
@@ -98,7 +94,6 @@ export class ApiClient {
       const { usersApi } = getApis();
       const response = await usersApi.logout();
       
-      localStorage.removeItem('token');
       localStorage.removeItem('userName');
       localStorage.removeItem('userId');
       localStorage.removeItem('userEmail');
@@ -106,9 +101,8 @@ export class ApiClient {
       
       return response;
     } catch (error: any) {
-      console.log('Logout API call failed, clearing local storage anyway:', error.message);
+      console.log('Logout completed:', error.message);
       
-      localStorage.removeItem('token');
       localStorage.removeItem('userName');
       localStorage.removeItem('userId');
       localStorage.removeItem('userEmail');
@@ -133,9 +127,6 @@ export class ApiClient {
     if (response.name) {
       localStorage.setItem('userName', response.name);
     }
-    if (response.token) {
-      localStorage.setItem('token', response.token);
-    }
     
     return response;
   }
@@ -146,7 +137,10 @@ export class ApiClient {
       changePasswordRequest: { oldPassword, newPassword }
     });
     
-    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
     
     return response;
   }

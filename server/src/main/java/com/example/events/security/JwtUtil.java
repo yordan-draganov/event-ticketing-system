@@ -27,15 +27,16 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String extractUsername(String token) {
+    public String extractUserName(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String extractUserId(String token) {
-        return extractClaim(token, claims -> claims.get("userId", String.class));
+    public UUID extractUserId(String token) {
+        String userIdStr = extractClaim(token, claims -> claims.get("userId", String.class));
+        return UUID.fromString(userIdStr);
     }
 
-    public String extractUserRole(String token) {
+    public String extractRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
@@ -77,9 +78,11 @@ public class JwtUtil {
                 .compact();
     }
 
-    public Boolean validateToken(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+    public Boolean validateToken(String token) {
+        try {
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
-
 }

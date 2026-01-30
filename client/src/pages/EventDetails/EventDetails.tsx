@@ -82,8 +82,8 @@ export const EventDetails: React.FC = () => {
   const handleBooking = () => {
     if (!eventId || selectedSeats.size === 0 || !event) return;
     
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const userName = localStorage.getItem('userName');
+    if (!userName) {
       alert('Please login to book tickets');
       navigate('/');
       return;
