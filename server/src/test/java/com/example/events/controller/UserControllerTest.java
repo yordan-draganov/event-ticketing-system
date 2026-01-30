@@ -7,6 +7,7 @@ import com.example.events.model.UserRole;
 import com.example.events.service.RedisTokenBlacklistService;
 import com.example.events.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,9 @@ class UserControllerTest {
 
     @Mock
     private HttpServletRequest httpServletRequest;
+
+    @Mock
+    private HttpServletResponse httpServletResponse;
 
     private SignupRequest signupRequest;
     private LoginRequest loginRequest;
@@ -80,7 +84,7 @@ class UserControllerTest {
     void testSignUpSuccess() {
         Mockito.when(userService.signUp(signupRequest)).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = userController.signUp(signupRequest);
+        ResponseEntity<AuthResponse> response = userController.signUp(signupRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -93,7 +97,7 @@ class UserControllerTest {
     void testLoginSuccess() {
         Mockito.when(userService.login(loginRequest)).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = userController.login(loginRequest);
+        ResponseEntity<AuthResponse> response = userController.login(loginRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -106,7 +110,7 @@ class UserControllerTest {
     void testLogoutSuccess() {
         Mockito.when(httpServletRequest.getHeader("Authorization")).thenReturn("Bearer test-token");
 
-        ResponseEntity<String> response = userController.logout(httpServletRequest);
+        ResponseEntity<String> response = userController.logout(httpServletRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Logout successful. Token has been invalidated.", response.getBody());
@@ -117,7 +121,7 @@ class UserControllerTest {
     void testDeleteUserSuccess() {
         Mockito.when(userService.deleteUser(httpServletRequest)).thenReturn("User deleted successfully");
 
-        ResponseEntity<String> response = userController.deleteUser(httpServletRequest);
+        ResponseEntity<String> response = userController.deleteUser(httpServletRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("User deleted successfully", response.getBody());
@@ -130,7 +134,7 @@ class UserControllerTest {
         Mockito.when(userService.changePassword("oldPass", "newPass", httpServletRequest))
                 .thenReturn("Password changed successfully. Please login again with your new password.");
 
-        ResponseEntity<String> response = userController.changePassword(request, httpServletRequest);
+        ResponseEntity<String> response = userController.changePassword(request, httpServletRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Password changed successfully. Please login again with your new password.", response.getBody());
@@ -142,7 +146,7 @@ class UserControllerTest {
         ChangeNameRequest request = new ChangeNameRequest("newname");
         Mockito.when(userService.changeName("newname", httpServletRequest)).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = userController.changeName(request, httpServletRequest);
+        ResponseEntity<AuthResponse> response = userController.changeName(request, httpServletRequest, httpServletResponse);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
