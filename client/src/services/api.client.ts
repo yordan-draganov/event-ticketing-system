@@ -9,14 +9,19 @@ import {
 import { getApiConfig } from './api.config';
 import type {
   EventResponse,
+  EventCreateDTO,
   LoginRequest,
   SignupRequest,
   AuthResponse,
   PaymentDTO,
   PaymentResponse,
+  PaymentStatusResponse,
   TicketCreateDTO,
   TicketResponse,
-  TicketDetailResponse
+  TicketDetailResponse,
+  UserDTO,
+  SeatResponse,
+  SectionResponse
 } from '../generated/api';
 
 const getApis = () => {
@@ -44,13 +49,13 @@ export class ApiClient {
     return response;
   }
 
-  static async createEvent(event: any): Promise<EventResponse> {
+  static async createEvent(event: EventCreateDTO): Promise<EventResponse> {
     const { eventsApi } = getApis();
     const response = await eventsApi.createEvent({ eventCreateDTO: event });
     return response;
   }
 
-  static async updateEvent(id: string, event: any): Promise<EventResponse> {
+  static async updateEvent(id: string, event: EventCreateDTO): Promise<EventResponse> {
     const { eventsApi } = getApis();
     const response = await eventsApi.updateEvent({ id, eventCreateDTO: event });
     return response;
@@ -100,8 +105,9 @@ export class ApiClient {
       localStorage.removeItem('userRole');
       
       return response;
-    } catch (error: any) {
-      console.log('Logout completed:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log('Logout completed:', errorMessage);
       
       localStorage.removeItem('userName');
       localStorage.removeItem('userId');
@@ -112,7 +118,7 @@ export class ApiClient {
     }
   }
 
-  static async getCurrentUser(): Promise<any> {
+  static async getCurrentUser(): Promise<UserDTO> {
     const { usersApi } = getApis();
     const response = await usersApi.getCurrentUser();
     return response;
@@ -153,7 +159,7 @@ export class ApiClient {
     return response;
   }
 
-  static async confirmPayment(paymentIntentId: string): Promise<any> {
+  static async confirmPayment(paymentIntentId: string): Promise<object> {
     const { paymentsApi } = getApis();
     const response = await paymentsApi.confirmPayment({
       paymentConfirmDTO: { paymentIntentId }
@@ -161,7 +167,7 @@ export class ApiClient {
     return response;
   }
 
-  static async getPaymentStatus(paymentIntentId: string): Promise<any> {
+  static async getPaymentStatus(paymentIntentId: string): Promise<PaymentStatusResponse> {
     const { paymentsApi } = getApis();
     const response = await paymentsApi.getPaymentStatus({ paymentIntentId });
     return response;
@@ -205,25 +211,25 @@ export class ApiClient {
     return response;
   }
 
-  static async getSeatsByEvent(eventId: string): Promise<any[]> {
+  static async getSeatsByEvent(eventId: string): Promise<SeatResponse[]> {
     const { seatsApi } = getApis();
     const response = await seatsApi.getSeatsByEvent({ eventId });
     return response;
   }
 
-  static async getSeatsBySection(sectionId: string): Promise<any[]> {
+  static async getSeatsBySection(sectionId: string): Promise<SeatResponse[]> {
     const { seatsApi } = getApis();
     const response = await seatsApi.getSeatsBySection({ sectionId });
     return response;
   }
 
-  static async getSectionsByEvent(eventId: string): Promise<any[]> {
+  static async getSectionsByEvent(eventId: string): Promise<SectionResponse[]> {
     const { sectionsApi } = getApis();
     const response = await sectionsApi.getSectionsByEvent({ eventId });
     return response;
   }
 
-  static async getSectionById(sectionId: string): Promise<any> {
+  static async getSectionById(sectionId: string): Promise<SectionResponse> {
     const { sectionsApi } = getApis();
     const response = await sectionsApi.getSectionById({ sectionId });
     return response;
