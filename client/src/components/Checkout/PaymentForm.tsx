@@ -28,8 +28,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSucces
 
     if (!stripe || !elements) return;
 
-    const token = localStorage.getItem('token');
-    if (!token || token === "null") {
+    const userName = localStorage.getItem('userName');
+    if (!userName) {
       setError("Please log in to complete your purchase.");
       setTimeout(() => navigate('/'), 2000);
       return;

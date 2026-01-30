@@ -38,13 +38,12 @@ export const Layout: React.FC = () => {
   } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const name = localStorage.getItem('userName');
     const email = localStorage.getItem('userEmail');
     const id = localStorage.getItem('userId');
     const role = localStorage.getItem('userRole');
     
-    if (token && name) {
+    if (name) {
       setIsAuthenticated(true);
       setUserName(name);
       setUserEmail(email || '');

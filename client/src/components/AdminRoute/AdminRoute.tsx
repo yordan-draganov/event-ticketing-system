@@ -7,7 +7,9 @@ interface AdminRouteProps {
 
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const userRole = localStorage.getItem('userRole');
-  const isAuthenticated = !!localStorage.getItem('token');
+  const userName = localStorage.getItem('userName');
+  
+  const isAuthenticated = !!userName;
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;

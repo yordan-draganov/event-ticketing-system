@@ -1,16 +1,16 @@
 package com.example.events.security;
 
-import com.example.events.DTO.ErrorResponse;
-import com.example.events.repository.UserRepository;
 import com.example.events.service.RedisTokenBlacklistService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,108 +19,85 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
     private final RedisTokenBlacklistService tokenBlacklistService;
-    private final ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil,
-                                   UserRepository userRepository,
-                                   RedisTokenBlacklistService tokenBlacklistService,
-                                   ObjectMapper objectMapper) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, RedisTokenBlacklistService tokenBlacklistService) {
         this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
         this.tokenBlacklistService = tokenBlacklistService;
-        this.objectMapper = objectMapper;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        final String authorizationHeader = request.getHeader("Authorization");
+        String token = extractToken(request);
 
-        String username = null;
-        String jwt = null;
-
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
-
-            if (tokenBlacklistService.isTokenBlacklisted(jwt)) {
-                logger.warn("Attempted to use blacklisted (logged out) token");
-                handleException(response, HttpStatus.UNAUTHORIZED, "Token Blacklisted",
-                        "This token has been invalidated. Please login again.", request.getRequestURI());
-                return;
-            }
-
+        if (token != null) {
             try {
-                username = jwtUtil.extractUsername(jwt);
+                if (tokenBlacklistService.isTokenBlacklisted(token)) {
+                    logger.warn("Attempt to use blacklisted token");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                if (jwtUtil.validateToken(token)) {
+                    String userName = jwtUtil.extractUserName(token);
+                    String role = jwtUtil.extractRole(token);
+                    UUID userId = jwtUtil.extractUserId(token);
+
+                    request.setAttribute("userName", userName);
+                    request.setAttribute("userId", userId.toString());
+                    request.setAttribute("role", role);
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userName,
+                                    null,
+                                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                            );
+
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    logger.debug("User {} authenticated with role {}", userName, role);
+                }
             } catch (ExpiredJwtException e) {
-                logger.error("JWT Token has expired: " + e.getMessage());
-                handleException(response, HttpStatus.UNAUTHORIZED, "Token Expired",
-                        "JWT token has expired. Please login again.", request.getRequestURI());
-                return;
+                logger.warn("JWT token expired: {}", e.getMessage());
+            } catch (MalformedJwtException e) {
+                logger.warn("Malformed JWT token: {}", e.getMessage());
             } catch (Exception e) {
-                logger.error("JWT Token extraction failed: " + e.getMessage());
-                handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token",
-                        "Failed to process JWT token: " + e.getMessage(), request.getRequestURI());
-                return;
-            }
-        }
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            if (jwtUtil.validateToken(jwt, username)) {
-
-                String role = jwtUtil.extractUserRole(jwt);
-                String userId = jwtUtil.extractUserId(jwt);
-
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
-
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                Collections.singletonList(authority)
-                        );
-
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                request.setAttribute("userId", userId);
-                request.setAttribute("userName", username);
-                request.setAttribute("userRole", role);
-
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            } else {
-                handleException(response, HttpStatus.UNAUTHORIZED, "Invalid Token",
-                        "JWT token validation failed", request.getRequestURI());
-                return;
+                logger.error("JWT authentication error: {}", e.getMessage());
             }
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void handleException(HttpServletResponse response, HttpStatus status, String error, String message, String path)
-            throws IOException {
-        response.setStatus(status.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
+    private String extractToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(status.value())
-                .error(error)
-                .message(message)
-                .path(path)
-                .build();
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("auth_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
 
-        objectMapper.writeValue(response.getWriter(), errorResponse);
+        return null;
     }
 }
