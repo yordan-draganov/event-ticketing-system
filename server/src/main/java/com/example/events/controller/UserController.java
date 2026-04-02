@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,15 +24,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/users")
 @Tag(name = "Users", description = "User authentication and management endpoints")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
     private final RedisTokenBlacklistService tokenBlacklistService;
-
-    public UserController(UserService userService, RedisTokenBlacklistService tokenBlacklistService) {
-        this.userService = userService;
-        this.tokenBlacklistService = tokenBlacklistService;
-    }
 
     @PostMapping("/signup")
     @Operation(summary = "Register new user", description = "Create a new user account")
@@ -158,7 +155,7 @@ public class UserController {
     private void setAuthCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie("auth_token", token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); 
+        cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setMaxAge(24 * 60 * 60);
         cookie.setAttribute("SameSite", "Lax");
@@ -168,7 +165,7 @@ public class UserController {
     private void clearAuthCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie("auth_token", null);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false);
+        cookie.setSecure(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);

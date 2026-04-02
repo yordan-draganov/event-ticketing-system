@@ -139,6 +139,38 @@ public class GlobalExceptionHandler {
                 ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(EmailSendException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public @ResponseBody ErrorResponse handleEmailSendException(
+            EmailSendException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Email Service Unavailable",
+                ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(HMACGenerationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody ErrorResponse handleHMACGenerationException(
+            HMACGenerationException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "HMAC Generation Error",
+                ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(QRCodeGenerationException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody ErrorResponse handleQRCodeGenerationException(
+            QRCodeGenerationException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "QR Code Generation Error",
+                ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(PaymentProcessingException.class)
+    @ResponseStatus(HttpStatus.PAYMENT_REQUIRED)
+    public @ResponseBody ErrorResponse handlePaymentProcessingException(
+            PaymentProcessingException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.PAYMENT_REQUIRED, "Payment Required",
+                ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public @ResponseBody ErrorResponse handleGenericException(

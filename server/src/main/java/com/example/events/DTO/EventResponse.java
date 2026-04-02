@@ -31,8 +31,6 @@ public class EventResponse {
     @Schema(type = "string", format = "time", example = "12:00:00")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime endTime;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
     private Boolean isFinished;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
