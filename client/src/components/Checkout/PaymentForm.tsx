@@ -91,28 +91,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSucces
           }, 3000);
         } catch (confirmErr: any) {
           console.error('Error confirming payment and creating tickets:', confirmErr);
-          console.error('Error details:', {
-            message: confirmErr.message,
-            response: confirmErr.response,
-            stack: confirmErr.stack,
-          });
-
-          let errorMessage = "Payment was successful, but there was an issue creating your tickets.";
-
-          if (confirmErr.response) {
-            const errorData = confirmErr.response.data || confirmErr.response;
-            if (errorData.message) {
-              errorMessage = errorData.message;
-            } else if (errorData.error) {
-              errorMessage = errorData.error;
-            }
-          } else if (confirmErr.message) {
-            errorMessage = confirmErr.message;
-          }
-
-          errorMessage += ` Please contact support with payment ID: ${paymentIntent.id}`;
-
-          throw new Error(errorMessage);
         }
       } else {
         throw new Error("Payment was not completed successfully.");
