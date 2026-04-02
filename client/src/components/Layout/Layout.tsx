@@ -12,6 +12,15 @@ import type { LoginRequest, SignupRequest } from '../../generated/api';
 export const Layout: React.FC = () => {
   const navigate = useNavigate();
 
+  const getStoredValue = (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (storageError) {
+      console.error(`Failed to read ${key} from local storage:`, storageError);
+      return null;
+    }
+  };
+
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -38,17 +47,21 @@ export const Layout: React.FC = () => {
   } = useAuth();
 
   useEffect(() => {
-    const name = localStorage.getItem('userName');
-    const email = localStorage.getItem('userEmail');
-    const id = localStorage.getItem('userId');
-    const role = localStorage.getItem('userRole');
-    
-    if (name) {
-      setIsAuthenticated(true);
-      setUserName(name);
-      setUserEmail(email || '');
-      setUserId(id || '');
-      setUserRole(role || 'user');
+    try {
+      const name = getStoredValue('userName');
+      const email = getStoredValue('userEmail');
+      const id = getStoredValue('userId');
+      const role = getStoredValue('userRole');
+
+      if (name) {
+        setIsAuthenticated(true);
+        setUserName(name);
+        setUserEmail(email || '');
+        setUserId(id || '');
+        setUserRole(role || 'user');
+      }
+    } catch (error) {
+      console.error('Failed to initialize authentication state:', error);
     }
   }, []);
 
@@ -57,10 +70,10 @@ export const Layout: React.FC = () => {
     if (result) {
       setLoginOpen(false);
       setIsAuthenticated(true);
-      setUserName(localStorage.getItem('userName') || '');
-      setUserEmail(localStorage.getItem('userEmail') || '');
-      setUserId(localStorage.getItem('userId') || '');
-      setUserRole(localStorage.getItem('userRole') || 'user');
+      setUserName(getStoredValue('userName') || '');
+      setUserEmail(getStoredValue('userEmail') || '');
+      setUserId(getStoredValue('userId') || '');
+      setUserRole(getStoredValue('userRole') || 'user');
     }
   };
 
@@ -69,10 +82,10 @@ export const Layout: React.FC = () => {
     if (result) {
       setSignupOpen(false);
       setIsAuthenticated(true);
-      setUserName(localStorage.getItem('userName') || '');
-      setUserEmail(localStorage.getItem('userEmail') || '');
-      setUserId(localStorage.getItem('userId') || '');
-      setUserRole(localStorage.getItem('userRole') || 'user');
+      setUserName(getStoredValue('userName') || '');
+      setUserEmail(getStoredValue('userEmail') || '');
+      setUserId(getStoredValue('userId') || '');
+      setUserRole(getStoredValue('userRole') || 'user');
     }
   };
 
@@ -91,7 +104,7 @@ export const Layout: React.FC = () => {
     if (result) {
       setChangeNameOpen(false);
       setUserName(newName);
-      const updatedName = localStorage.getItem('userName');
+      const updatedName = getStoredValue('userName');
       if (updatedName) {
         setUserName(updatedName);
       }
@@ -142,7 +155,7 @@ export const Layout: React.FC = () => {
           <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex justify-between items-center">
             <span>{success}</span>
             <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
-              ✕
+              âœ•
             </button>
           </div>
         </div>
@@ -153,7 +166,7 @@ export const Layout: React.FC = () => {
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
             <span>{error}</span>
             <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
-              ✕
+              âœ•
             </button>
           </div>
         </div>

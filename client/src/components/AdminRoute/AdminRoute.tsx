@@ -6,8 +6,15 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const userRole = localStorage.getItem('userRole');
-  const userName = localStorage.getItem('userName');
+  let userRole: string | null = null;
+  let userName: string | null = null;
+
+  try {
+    userRole = localStorage.getItem('userRole');
+    userName = localStorage.getItem('userName');
+  } catch (storageError) {
+    console.error('Failed to read authentication state for admin route:', storageError);
+  }
   
   const isAuthenticated = !!userName;
 
