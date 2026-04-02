@@ -82,7 +82,15 @@ export const EventDetails: React.FC = () => {
   const handleBooking = () => {
     if (!eventId || selectedSeats.size === 0 || !event) return;
     
-    const userName = localStorage.getItem('userName');
+    let userName: string | null = null;
+    try {
+      userName = localStorage.getItem('userName');
+    } catch (storageError) {
+      console.error('Failed to read authentication state during booking:', storageError);
+      alert('Unable to access your session. Please try again.');
+      return;
+    }
+
     if (!userName) {
       alert('Please login to book tickets');
       navigate('/');
