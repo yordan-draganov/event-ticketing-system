@@ -1,5 +1,7 @@
 package com.example.events.service;
 
+import com.example.events.exception.HMACGenerationException;
+import com.example.events.exception.QRCodeGenerationException;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
@@ -14,11 +16,9 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -32,9 +32,6 @@ public class QRCodeService {
     private static final Logger logger = LoggerFactory.getLogger(QRCodeService.class);
     private static final String hmacAlgorithm = "HmacSHA256";
 
-    @Value("${qr.code.directory}")
-    private String qrCodeDirectory;
-
     @Value("${qr.code.width}")
     private int width;
 
@@ -47,27 +44,18 @@ public class QRCodeService {
     @Value("${app.url}")
     private String appUrl;
 
-    public String generateAndSaveQRCode(UUID ticketId, String verificationToken) {
+    public byte[] generateQRCodeImage(UUID ticketId, String verificationToken) {
         try {
-            Path directory = Paths.get(qrCodeDirectory);
-            if (!Files.exists(directory)) {
-                Files.createDirectories(directory);
-            }
-
             String qrContent = buildVerificationUrl(ticketId, verificationToken);
             BitMatrix bitMatrix = generateQRCodeMatrix(qrContent);
-
-            String fileName = "ticket_" + ticketId.toString() + ".png";
-            Path filePath = directory.resolve(fileName);
-            MatrixToImageWriter.writeToPath(bitMatrix, "PNG", filePath);
-
-            logger.info("QR code generated and saved: {}", filePath);
-
-            return "/qr-codes/" + fileName;
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+            logger.info("QR code generated in memory for ticket {}", ticketId);
+            return outputStream.toByteArray();
 
         } catch (WriterException | IOException e) {
             logger.error("Error generating QR code for ticket {}: {}", ticketId, e.getMessage());
-            throw new RuntimeException("Failed to generate QR code", e);
+            throw new QRCodeGenerationException("Failed to generate QR code", e);
         }
     }
 
@@ -104,7 +92,7 @@ public class QRCodeService {
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hmacBytes);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             logger.error("Error generating HMAC signature: {}", e.getMessage());
-            throw new RuntimeException("Failed to generate HMAC signature", e);
+            throw new HMACGenerationException("Failed to generate HMAC signature", e);
         }
     }
 

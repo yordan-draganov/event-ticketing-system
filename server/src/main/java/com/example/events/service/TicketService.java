@@ -101,10 +101,7 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
 
         String verificationToken = qrCodeService.generateCompactToken(savedTicket.getId());
-
-        String qrCodeUrl = qrCodeService.generateAndSaveQRCode(savedTicket.getId(), verificationToken);
-        savedTicket.setQrCodeUrl(qrCodeUrl);
-        savedTicket = ticketRepository.save(savedTicket);
+        byte[] qrCodeImage = qrCodeService.generateQRCodeImage(savedTicket.getId(), verificationToken);
 
         for (Seat seat : seats) {
             seat.setTicket(savedTicket);
@@ -112,11 +109,11 @@ public class TicketService {
             seatRepository.save(seat);
         }
 
-        logger.info("Ticket created successfully with id: {} for {} seats with URL-based QR code", savedTicket.getId(), seats.size());
+        logger.info("Ticket created successfully with id: {} for {} seats", savedTicket.getId(), seats.size());
 
         try {
             TicketDetailResponse ticketDetail = getTicketDetailForEmail(savedTicket.getId());
-            emailService.sendTicketConfirmationEmail(ticketDetail);
+            emailService.sendTicketConfirmationEmail(ticketDetail, qrCodeImage);
 
             savedTicket.setEmailSent(true);
             ticketRepository.save(savedTicket);
