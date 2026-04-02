@@ -65,10 +65,6 @@ public class EventService {
         Event event = findEventById(id);
         validateEventTimes(eventDTO.getStartTime(), eventDTO.getEndTime());
 
-        eventMapper.updateEntityFromDTO(eventDTO, event);
-
-        Event updatedEvent = eventRepository.save(event);
-
         long soldSeats = seatRepository.findByEventIdOrderByRowLabelAscSeatNumberAsc(id)
                 .stream()
                 .filter(seat -> !seat.getIsAvailable())
@@ -77,6 +73,10 @@ public class EventService {
         if (soldSeats > 0) {
             throw new ValidationException("Cannot modify sections with sold tickets " + soldSeats + " seats have already been purchased.");
         }
+
+        eventMapper.updateEntityFromDTO(eventDTO, event);
+
+        Event updatedEvent = eventRepository.save(event);
 
         List<Section> existingSections = sectionRepository.findByEventIdOrderByNameAsc(id);
         sectionRepository.deleteAll(existingSections);

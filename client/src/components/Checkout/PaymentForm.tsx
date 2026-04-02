@@ -15,6 +15,31 @@ interface PaymentFormProps {
   onSuccess: () => void;
 }
 
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  if (!error) return fallback;
+
+  const anyError = error as any;
+
+  if (anyError.response) {
+    const data = anyError.response.data || anyError.response;
+    if (typeof data === 'string') {
+      return data;
+    }
+    if (data?.message) {
+      return data.message;
+    }
+    if (data?.error) {
+      return data.error;
+    }
+  }
+
+  if (anyError.message) {
+    return anyError.message as string;
+  }
+
+  return fallback;
+};
+
 export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -89,15 +114,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSucces
           setTimeout(() => {
             navigate('/', { state: { paymentSuccess: true } });
           }, 3000);
-        } catch (confirmErr: any) {
+        } catch (confirmErr: unknown) {
           console.error('Error confirming payment and creating tickets:', confirmErr);
         }
       } else {
         throw new Error("Payment was not completed successfully.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Payment error:', err);
-      setError(err.message || "An unexpected error occurred. Please try again.");
+      const message = extractErrorMessage(err, "An unexpected error occurred. Please try again.");
+      setError(message);
     } finally {
       setLoading(false);
     }

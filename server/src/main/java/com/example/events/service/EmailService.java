@@ -1,13 +1,14 @@
 package com.example.events.service;
 
 import com.example.events.DTO.TicketDetailResponse;
+import com.example.events.exception.EmailSendException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -15,8 +16,6 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.io.File;
-import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
@@ -32,15 +31,8 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${qr.code.directory}")
-    private String qrCodeDirectory;
-
-    @Value("${app.url}")
-    private String appUrl;
-
-
     @Async
-    public void sendTicketConfirmationEmail(TicketDetailResponse ticket) {
+    public void sendTicketConfirmationEmail(TicketDetailResponse ticket, byte[] qrCodeImage) {
         try {
             logger.info("Preparing to send ticket confirmation email to: {}", ticket.getUserEmail());
 
@@ -51,20 +43,13 @@ public class EmailService {
             helper.setTo(ticket.getUserEmail());
             helper.setSubject("Your Ticket for " + ticket.getEventTitle());
 
-            String emailContent = buildEmailContent(ticket);
+            boolean hasQrCode = qrCodeImage != null && qrCodeImage.length > 0;
+            String emailContent = buildEmailContent(ticket, hasQrCode);
             helper.setText(emailContent, true);
 
-            if (ticket.getQrCodeUrl() != null && !ticket.getQrCodeUrl().isEmpty()) {
-                String qrCodePath = ticket.getQrCodeUrl().replace("/qr-codes/", "");
-                File qrCodeFile = Paths.get(qrCodeDirectory, qrCodePath).toFile();
-
-                if (qrCodeFile.exists()) {
-                    FileSystemResource qrCode = new FileSystemResource(qrCodeFile);
-                    helper.addInline("qrCode", qrCode);
-                    logger.info("QR code attached to email");
-                } else {
-                    logger.warn("QR code file not found: {}", qrCodeFile.getAbsolutePath());
-                }
+            if (hasQrCode) {
+                helper.addInline("qrCode", new ByteArrayResource(qrCodeImage), "image/png");
+                logger.info("QR code attached to email from memory");
             }
 
             mailSender.send(message);
@@ -72,11 +57,11 @@ public class EmailService {
 
         } catch (MessagingException e) {
             logger.error("Failed to send email to {}: {}", ticket.getUserEmail(), e.getMessage(), e);
-            throw new RuntimeException("Failed to send email", e);
+            throw new EmailSendException("Failed to send email", e);
         }
     }
 
-    private String buildEmailContent(TicketDetailResponse ticket) {
+    private String buildEmailContent(TicketDetailResponse ticket, boolean hasQrCode) {
         Context context = new Context();
 
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMMM dd, yyyy");
@@ -101,7 +86,7 @@ public class EmailService {
         context.setVariable("seatCount", ticket.getSeatCount());
         context.setVariable("totalPrice", ticket.getTotalPrice());
         context.setVariable("ticketId", ticket.getId());
-        context.setVariable("hasQrCode", ticket.getQrCodeUrl() != null);
+        context.setVariable("hasQrCode", hasQrCode);
 
         return templateEngine.process("ticket-confirmation", context);
     }

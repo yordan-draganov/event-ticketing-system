@@ -67,11 +67,13 @@ public class PaymentController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get payment status", description = "Check current status of payment intent")
     public ResponseEntity<PaymentStatusResponse> getPaymentStatus(
-            @PathVariable String paymentIntentId) {
+            @PathVariable String paymentIntentId,
+            HttpServletRequest httpRequest) {
 
+        UUID userId = extractUserId(httpRequest);
         logger.info("Checking payment status for {}", paymentIntentId);
         return ResponseEntity.ok(
-                stripeService.getPaymentStatus(paymentIntentId)
+                stripeService.getPaymentStatus(paymentIntentId, userId)
         );
     }
 
@@ -79,10 +81,12 @@ public class PaymentController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Cancel payment", description = "Cancel pending payment intent")
     public ResponseEntity<String> cancelPayment(
-            @PathVariable String paymentIntentId) {
+            @PathVariable String paymentIntentId,
+            HttpServletRequest httpRequest) {
 
+        UUID userId = extractUserId(httpRequest);
         logger.info("Cancelling payment {}", paymentIntentId);
-        stripeService.cancelPaymentIntent(paymentIntentId);
+        stripeService.cancelPaymentIntent(paymentIntentId, userId);
 
         return ResponseEntity.ok("Payment cancelled successfully");
     }

@@ -1,10 +1,7 @@
 package com.example.events.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -14,7 +11,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "tickets")
-@Data
+@Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -42,6 +40,7 @@ public class Ticket {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private TicketStatus status = TicketStatus.confirmed;
 
     @Column(name = "purchase_date")
@@ -52,6 +51,7 @@ public class Ticket {
     private String qrCodeUrl;
 
     @Column(name = "email_sent")
+    @Builder.Default
     private Boolean emailSent = false;
 
     @CreationTimestamp
