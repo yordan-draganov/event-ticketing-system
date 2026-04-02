@@ -54,6 +54,4 @@ public class TicketDetailResponse {
     @Schema(type = "string", format = "time", example = "12:00:00")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime endTime;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
 }
