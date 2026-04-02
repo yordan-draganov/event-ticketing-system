@@ -13,7 +13,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "sections")
-@Data
+@Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

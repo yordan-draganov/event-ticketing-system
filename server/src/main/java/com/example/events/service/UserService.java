@@ -11,6 +11,7 @@ import com.example.events.model.UserRole;
 import com.example.events.repository.UserRepository;
 import com.example.events.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,24 +22,13 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RedisTokenBlacklistService tokenBlacklistService;
     private final UserMapper userMapper;
-
-    public UserService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil,
-                       RedisTokenBlacklistService tokenBlacklistService,
-                       UserMapper userMapper) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-        this.tokenBlacklistService = tokenBlacklistService;
-        this.userMapper = userMapper;
-    }
 
     public AuthResponse signUp(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -94,7 +84,7 @@ public class UserService {
         }
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            throw new IllegalArgumentException("New password must be different from current password");
+            throw new ValidationException("New password must be different from current password");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -109,7 +99,7 @@ public class UserService {
         User user = getAuthenticatedUser(request);
 
         if (user.getName().equals(newName)) {
-            throw new IllegalArgumentException("New name is the same as current name");
+            throw new ValidationException("New name is the same as current name");
         }
 
         if (userRepository.existsByName(newName)) {

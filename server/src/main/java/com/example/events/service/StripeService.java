@@ -1,6 +1,8 @@
 package com.example.events.service;
 
 import com.example.events.DTO.*;
+import com.example.events.exception.PaymentProcessingException;
+import com.example.events.exception.UnauthorizedException;
 import com.example.events.exception.ValidationException;
 import com.example.events.model.Event;
 import com.example.events.model.Seat;
@@ -54,12 +56,24 @@ public class StripeService {
                 throw new ResourceNotFoundException("Some seats not found");
             }
 
-            long totalAmount = seats.stream()
-                    .mapToLong(seat -> seat.getSection().getPrice().longValue())
-                    .sum();
+            boolean hasSeatFromDifferentEvent = seats.stream().anyMatch(seat -> seat.getEvent() == null || !seat.getEvent().getId().equals(eventId));
+            if (hasSeatFromDifferentEvent) {
+                throw new ValidationException("Some seats do not belong to the selected event");
+            }
+
+            boolean hasUnavailableSeats = seats.stream().anyMatch(seat -> !Boolean.TRUE.equals(seat.getIsAvailable()) || seat.getTicket() != null);
+            if (hasUnavailableSeats) {
+                throw new ValidationException("Some seats are no longer available");
+            }
+
+            BigDecimal totalAmount = seats.stream()
+                    .map(seat -> seat.getSection().getPrice())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            long amountInCents = totalAmount.multiply(BigDecimal.valueOf(100)).longValue();
 
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(totalAmount * 100)
+                    .setAmount(amountInCents)
                     .setCurrency("usd")
                     .putMetadata("eventId", eventId.toString())
                     .putMetadata("userId", userId.toString())
@@ -76,12 +90,12 @@ public class StripeService {
             return PaymentResponse.builder()
                     .clientSecret(intent.getClientSecret())
                     .paymentIntentId(intent.getId())
-                    .amount(BigDecimal.valueOf(totalAmount))
+                    .amount(totalAmount)
                     .currency("USD")
                     .build();
 
         } catch (StripeException e) {
-            throw new RuntimeException("Stripe error: " + e.getMessage());
+            throw new PaymentProcessingException("Stripe error: " + e.getMessage(), e);
         }
     }
 
@@ -124,9 +138,10 @@ public class StripeService {
         }
     }
 
-    public PaymentStatusResponse getPaymentStatus(String paymentIntentId) {
+    public PaymentStatusResponse getPaymentStatus(String paymentIntentId, UUID userId) {
         try {
             PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+            assertPaymentOwnership(intent, userId);
 
             return PaymentStatusResponse.builder()
                     .paymentIntentId(intent.getId())
@@ -136,16 +151,24 @@ public class StripeService {
                     .build();
 
         } catch (StripeException e) {
-            throw new RuntimeException(e.getMessage());
+            throw new PaymentProcessingException(e.getMessage(), e);
         }
     }
 
-    public void cancelPaymentIntent(String paymentIntentId) {
+    public void cancelPaymentIntent(String paymentIntentId, UUID userId) {
         try {
             PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+            assertPaymentOwnership(intent, userId);
             intent.cancel(PaymentIntentCancelParams.builder().build());
         } catch (StripeException e) {
-            throw new RuntimeException(e.getMessage());
+            throw new PaymentProcessingException(e.getMessage(), e);
+        }
+    }
+
+    private void assertPaymentOwnership(PaymentIntent intent, UUID userId) {
+        String paymentUserId = intent.getMetadata().get("userId");
+        if (paymentUserId == null || !userId.toString().equals(paymentUserId)) {
+            throw new UnauthorizedException("This payment does not belong to you");
         }
     }
 
@@ -189,15 +212,6 @@ public class StripeService {
                 .body(ErrorResponse.builder()
                         .status(402)
                         .error("Payment Required")
-                        .message(msg)
-                        .build());
-    }
-
-    private ResponseEntity<ErrorResponse> accepted(String msg) {
-        return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(ErrorResponse.builder()
-                        .status(202)
-                        .error("Processing")
                         .message(msg)
                         .build());
     }

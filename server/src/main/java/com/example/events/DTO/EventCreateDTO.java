@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -41,9 +40,6 @@ public class EventCreateDTO {
     @Schema(type = "string", format = "time", example = "12:00:00")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime endTime;
-
-    private BigDecimal latitude;
-    private BigDecimal longitude;
 
     @NotNull(message = "At least one section is required")
     @Size(min = 1, message = "Event must have at least one section")
