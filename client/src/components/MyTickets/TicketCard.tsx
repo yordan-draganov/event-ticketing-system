@@ -9,6 +9,7 @@ interface TicketCardProps {
 
 export const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
   const navigate = useNavigate();
+  const fallbackImage = 'https://placehold.co/400x200?text=Event';
 
   const getStatusColor = (status: string): string => {
     switch (status) {
@@ -23,14 +24,26 @@ export const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
     }
   };
 
+  const handleViewTicket = () => {
+    if (ticket.eventId) {
+      navigate(`/events/${ticket.eventId}`);
+      return;
+    }
+
+    navigate('/my-tickets');
+  };
+
   return (
     <div className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden">
       <div className="flex flex-col md:flex-row">
         <div className="w-full md:w-1/3 flex-shrink-0">
           <img
-            src={ticket.eventImage || 'https://via.placeholder.com/400x300?text=Event'}
+            src={ticket.eventImage || fallbackImage}
             alt={ticket.eventTitle}
             className="w-full h-48 md:h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = fallbackImage;
+            }}
           />
         </div>
         
@@ -75,10 +88,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
               <p className="text-xl font-bold text-blue-600">${ticket.totalPrice}</p>
             </div>
             <button
-              onClick={() => navigate(`/tickets/${ticket.id}`)}
+              onClick={handleViewTicket}
               className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-center"
             >
-              View Ticket
+              View Event
             </button>
           </div>
         </div>
