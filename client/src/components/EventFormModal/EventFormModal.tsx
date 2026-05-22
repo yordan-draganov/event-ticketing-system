@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { EventResponse, EventCreateDTO, SectionRequestDTO, EventCreateDTOCategoryEnum } from '../../generated/api';
 import { ApiClient } from '../../services/api.client';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 interface EventFormModalProps {
   isOpen: boolean;
@@ -116,8 +117,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       }
 
       onSave();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save event');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to save event'));
     } finally {
       setLoading(false);
     }

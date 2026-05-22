@@ -4,6 +4,9 @@ import type { EventResponse } from '../../generated/api';
 import { formatDateShort, formatTime } from '../../utils/dateUtils';
 import { EventFormModal } from '../../components/EventFormModal/EventFormModal';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal/DeleteConfirmModal';
+import { getErrorMessage } from '../../utils/errorUtils';
+
+type SortOption = 'date' | 'title' | 'availability';
 
 export const AdminDashboard: React.FC = () => {
   const [events, setEvents] = useState<EventResponse[]>([]);
@@ -18,7 +21,7 @@ export const AdminDashboard: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [sortBy, setSortBy] = useState<'date' | 'title' | 'availability'>('date');
+  const [sortBy, setSortBy] = useState<SortOption>('date');
 
   useEffect(() => {
     fetchEvents();
@@ -30,8 +33,8 @@ export const AdminDashboard: React.FC = () => {
       const data = await ApiClient.getAllEvents();
       setEvents(data);
       setError('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch events');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to fetch events'));
     } finally {
       setLoading(false);
     }
@@ -61,8 +64,8 @@ export const AdminDashboard: React.FC = () => {
       setIsDeleteModalOpen(false);
       fetchEvents();
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete event');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to delete event'));
       setTimeout(() => setError(''), 3000);
     }
   };
@@ -230,7 +233,7 @@ export const AdminDashboard: React.FC = () => {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 aria-label="Sort events by"
               >
