@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ApiClient } from '../../services/api.client';
 import type { EventResponse, SectionResponse, SeatResponse } from '../../generated/api';
@@ -20,19 +20,7 @@ export const EventDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (eventId) {
-      fetchEventDetails();
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    if (selectedSection) {
-      fetchSeats(selectedSection);
-    }
-  }, [selectedSection]);
-
-  const fetchEventDetails = async () => {
+  const fetchEventDetails = useCallback(async () => {
     if (!eventId) return;
     
     try {
@@ -51,16 +39,28 @@ export const EventDetails: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId]);
 
-  const fetchSeats = async (sectionId: string) => {
+  const fetchSeats = useCallback(async (sectionId: string) => {
     try {
       const seatsData = await ApiClient.getSeatsBySection(sectionId);
       setSeats(seatsData);
     } catch (err) {
       console.error('Failed to load seats:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (eventId) {
+      fetchEventDetails();
+    }
+  }, [eventId, fetchEventDetails]);
+
+  useEffect(() => {
+    if (selectedSection) {
+      fetchSeats(selectedSection);
+    }
+  }, [selectedSection, fetchSeats]);
 
   const handleSectionChange = (sectionId: string) => {
     setSelectedSection(sectionId);
@@ -79,19 +79,12 @@ export const EventDetails: React.FC = () => {
     setSelectedSeats(newSelected);
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!eventId || selectedSeats.size === 0 || !event) return;
-    
-    let userName: string | null = null;
-    try {
-      userName = localStorage.getItem('userName');
-    } catch (storageError) {
-      console.error('Failed to read authentication state during booking:', storageError);
-      alert('Unable to access your session. Please try again.');
-      return;
-    }
 
-    if (!userName) {
+    try {
+      await ApiClient.getCurrentUser();
+    } catch {
       alert('Please login to book tickets');
       navigate('/');
       return;

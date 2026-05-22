@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ApiClient } from '../services/api.client';
 import type { LoginRequest, SignupRequest } from '../generated/api';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -16,9 +17,8 @@ export const useAuth = () => {
       const response = await ApiClient.login(data);
       setSuccess(response.message || 'Login successful!');
       return true;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
-      setError(errorMessage);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Login failed'));
       return false;
     } finally {
       setLoading(false);
@@ -34,9 +34,8 @@ export const useAuth = () => {
       const response = await ApiClient.signup(data);
       setSuccess(response.message || 'Account created successfully!');
       return true;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Signup failed';
-      setError(errorMessage);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Signup failed'));
       return false;
     } finally {
       setLoading(false);
@@ -49,8 +48,7 @@ export const useAuth = () => {
       await ApiClient.logout();
       setSuccess('Logged out successfully');
       return true;
-    } catch (err: any) {
-      console.log('Logout completed (local storage cleared)');
+    } catch {
       setSuccess('Logged out successfully');
       return true;
     } finally {
@@ -67,9 +65,8 @@ export const useAuth = () => {
       const response = await ApiClient.changeName(newName);
       setSuccess('Username changed successfully!');
       return response;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to change name';
-      setError(errorMessage);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to change name'));
       return null;
     } finally {
       setLoading(false);
@@ -85,9 +82,8 @@ export const useAuth = () => {
       await ApiClient.changePassword(oldPassword, newPassword);
       setSuccess('Password changed successfully! Please log in again.');
       return true;
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to change password';
-      setError(errorMessage);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to change password'));
       return false;
     } finally {
       setLoading(false);

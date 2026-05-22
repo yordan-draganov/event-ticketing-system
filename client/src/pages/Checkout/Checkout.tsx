@@ -130,8 +130,8 @@ export const Checkout: React.FC = () => {
               <PaymentSuccess />
             ) : (
               <Elements stripe={stripePromise}>
-                <PaymentForm 
-                  checkoutData={checkoutData} 
+                <PaymentForm
+                  checkoutData={checkoutData}
                   onSuccess={() => setPaymentSuccess(true)}
                 />
               </Elements>

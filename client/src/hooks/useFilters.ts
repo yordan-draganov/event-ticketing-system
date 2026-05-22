@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import type { EventResponse } from '../generated/api';
 
 export const useFilters = (events: EventResponse[]) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [filteredEvents, setFilteredEvents] = useState<EventResponse[]>(events);
 
-  useEffect(() => {
+  const filteredEvents = useMemo(() => {
     let filtered = events;
 
     if (searchQuery) {
@@ -22,7 +21,7 @@ export const useFilters = (events: EventResponse[]) => {
       filtered = filtered.filter(event => event.category === categoryFilter);
     }
 
-    setFilteredEvents(filtered);
+    return filtered;
   }, [searchQuery, categoryFilter, events]);
 
   return {

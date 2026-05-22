@@ -1,4 +1,7 @@
 import React from 'react';
+import EventSeatIcon from '@mui/icons-material/EventSeat';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { SeatResponse } from '../../generated/api';
 import { groupSeatsByRow } from '../../utils/eventUtils';
 
@@ -14,23 +17,48 @@ export const SeatMap: React.FC<SeatMapProps> = ({
   onSeatToggle,
 }) => {
   const groupedSeats = groupSeatsByRow(seats);
+  const rowKeys = Object.keys(groupedSeats).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const availableCount = seats.filter((seat) => seat.isAvailable).length;
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-gray-200/50 p-4 sm:p-6 md:p-8 lg:p-12 border border-gray-100 relative overflow-hidden">
-      <div className="max-w-md mx-auto mb-12 sm:mb-16 md:mb-20 relative">
-        <div className="w-full h-2 sm:h-3 bg-gradient-to-r from-gray-200 via-gray-400 to-gray-200 rounded-full blur-sm opacity-50" />
-        <div className="relative -top-1 w-full h-10 sm:h-12 bg-gray-800 rounded-b-[80px] sm:rounded-b-[100px] shadow-2xl flex items-center justify-center">
-          <span className="text-gray-400 text-[10px] sm:text-xs font-black tracking-[0.2em] sm:tracking-[0.3em] uppercase">Stage</span>
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_-36px_rgba(15,23,42,0.4)]">
+      <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/80 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 md:px-8">
+        <div>
+          <h3 className="text-xl font-extrabold text-slate-950">Seat Map</h3>
+          <p className="mt-1 text-sm text-slate-500">Pick any available seat from the current section.</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 text-center sm:min-w-80">
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Rows</p>
+            <p className="text-lg font-black text-slate-900">{rowKeys.length}</p>
+          </div>
+          <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Open</p>
+            <p className="text-lg font-black text-emerald-700">{availableCount}</p>
+          </div>
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Chosen</p>
+            <p className="text-lg font-black text-blue-700">{selectedSeats.size}</p>
+          </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-6 sm:pb-8 -mx-2 px-2">
-        <div className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 min-w-max">
-          {Object.keys(groupedSeats).sort().map(row => (
-            <div key={row} className="flex items-center gap-2 sm:gap-4 md:gap-6">
-              <span className="w-4 sm:w-6 text-[10px] sm:text-xs font-black text-gray-300 text-right">{row}</span>
-              
-              <div className="flex gap-1.5 sm:gap-2 md:gap-2.5">
+      <div className="p-4 sm:p-6 md:p-8 lg:p-10">
+        <div className="mx-auto mb-10 max-w-xl sm:mb-12">
+          <div className="h-2 rounded-full bg-gradient-to-r from-transparent via-slate-400 to-transparent opacity-60 blur-[1px]" />
+          <div className="relative -top-1 mx-auto flex h-12 w-[92%] items-center justify-center rounded-b-[120px] bg-slate-900 shadow-[0_20px_45px_-20px_rgba(15,23,42,0.75)] sm:h-14">
+            <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-300">Stage</span>
+          </div>
+        </div>
+
+        <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6">
+          <div className="mx-auto flex min-w-max flex-col items-center gap-2.5 sm:gap-3">
+            {rowKeys.map(row => (
+              <div key={row} className="grid grid-cols-[2rem_auto_2rem] items-center gap-2 sm:grid-cols-[2.5rem_auto_2.5rem] sm:gap-4">
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-center text-[11px] font-black text-slate-500">{row}</span>
+
+                <div className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 px-2 py-2 sm:gap-2 sm:px-3">
                 {groupedSeats[row]
                   .sort((a, b) => (a.seatNumber || 0) - (b.seatNumber || 0))
                   .map((seat, idx) => (
@@ -38,40 +66,43 @@ export const SeatMap: React.FC<SeatMapProps> = ({
                       key={seat.id}
                       onClick={() => seat.id && onSeatToggle(seat.id, seat.isAvailable)}
                       disabled={!seat.isAvailable}
+                      title={`Row ${row}, seat ${seat.seatNumber}${seat.isAvailable ? '' : ' unavailable'}`}
                       className={`
-                        w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] md:text-[11px] font-bold transition-all duration-200
+                        group relative flex h-9 w-9 flex-col items-center justify-center rounded-lg border text-[10px] font-black transition-all duration-200 sm:h-10 sm:w-10 sm:text-[11px] md:h-11 md:w-11
                         ${seat.id && selectedSeats.has(seat.id)
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110 -translate-y-1'
+                          ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200 -translate-y-1'
                           : seat.isAvailable
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 hover:border-emerald-400 hover:bg-emerald-100 active:scale-95'
-                          : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          ? 'border-emerald-200 bg-white text-emerald-700 hover:border-emerald-500 hover:bg-emerald-50 hover:-translate-y-0.5 active:scale-95'
+                          : 'cursor-not-allowed border-slate-200 bg-slate-200 text-slate-400'
                         }
-                        ${(idx + 1) % 10 === 0 ? 'mr-3 sm:mr-4 md:mr-6' : ''}
+                        ${(idx + 1) % 10 === 0 ? 'mr-3 sm:mr-5' : ''}
                       `}
                     >
+                      <span className={`absolute left-1 right-1 top-1 h-1 rounded-full ${seat.id && selectedSeats.has(seat.id) ? 'bg-blue-300' : seat.isAvailable ? 'bg-emerald-200' : 'bg-slate-300'}`} />
                       {seat.seatNumber}
                     </button>
                   ))}
-              </div>
-              
-              <span className="w-4 sm:w-6 text-[10px] sm:text-xs font-black text-gray-300">{row}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+                </div>
 
-      <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8 mt-8 sm:mt-10 md:mt-12 pt-6 sm:pt-8 border-t border-gray-50">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-emerald-50 border border-emerald-100 rounded flex-shrink-0" />
-          <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-tighter">Available</span>
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-center text-[11px] font-black text-slate-500">{row}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-600 rounded flex-shrink-0" />
-          <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-tighter">Selected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-100 rounded flex-shrink-0" />
-          <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-tighter">Sold Out</span>
+
+        <div className="mt-6 flex flex-wrap justify-center gap-3 border-t border-slate-100 pt-6 sm:gap-4">
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+            <EventSeatIcon className="text-emerald-600" fontSize="small" />
+            <span className="text-xs font-black uppercase tracking-wide text-emerald-700">Available</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+            <CheckCircleIcon className="text-blue-600" fontSize="small" />
+            <span className="text-xs font-black uppercase tracking-wide text-blue-700">Selected</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <BlockIcon className="text-slate-400" fontSize="small" />
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Sold out</span>
+          </div>
         </div>
       </div>
     </div>

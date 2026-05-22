@@ -7,19 +7,11 @@ import { ProfileModal } from '../ProfileModal/ProfileModal';
 import { ChangeNameModal } from '../ChangeNameModal/ChangeNameModal';
 import { ChangePasswordModal } from '../ChangePasswordModal/ChangePasswordModal';
 import { useAuth } from '../../hooks/useAuth';
-import type { LoginRequest, SignupRequest } from '../../generated/api';
+import { ApiClient } from '../../services/api.client';
+import type { LoginRequest, SignupRequest, UserDTO } from '../../generated/api';
 
 export const Layout: React.FC = () => {
   const navigate = useNavigate();
-
-  const getStoredValue = (key: string) => {
-    try {
-      return localStorage.getItem(key);
-    } catch (storageError) {
-      console.error(`Failed to read ${key} from local storage:`, storageError);
-      return null;
-    }
-  };
 
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
@@ -46,34 +38,55 @@ export const Layout: React.FC = () => {
     setError 
   } = useAuth();
 
-  useEffect(() => {
-    try {
-      const name = getStoredValue('userName');
-      const email = getStoredValue('userEmail');
-      const id = getStoredValue('userId');
-      const role = getStoredValue('userRole');
+  const clearUser = () => {
+    setIsAuthenticated(false);
+    setUserName('');
+    setUserEmail('');
+    setUserId('');
+    setUserRole('');
+  };
 
-      if (name) {
-        setIsAuthenticated(true);
-        setUserName(name);
-        setUserEmail(email || '');
-        setUserId(id || '');
-        setUserRole(role || 'user');
+  const applyUser = (user: UserDTO) => {
+    setIsAuthenticated(true);
+    setUserName(user.name || '');
+    setUserEmail(user.email || '');
+    setUserId(user.id || '');
+    setUserRole(user.role || 'user');
+  };
+
+  const refreshCurrentUser = async () => {
+    const user = await ApiClient.getCurrentUser();
+    applyUser(user);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCurrentUser = async () => {
+      try {
+        const user = await ApiClient.getCurrentUser();
+        if (!cancelled) {
+          applyUser(user);
+        }
+      } catch {
+        if (!cancelled) {
+          clearUser();
+        }
       }
-    } catch (error) {
-      console.error('Failed to initialize authentication state:', error);
-    }
+    };
+
+    loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLogin = async (data: LoginRequest) => {
     const result = await login(data);
     if (result) {
       setLoginOpen(false);
-      setIsAuthenticated(true);
-      setUserName(getStoredValue('userName') || '');
-      setUserEmail(getStoredValue('userEmail') || '');
-      setUserId(getStoredValue('userId') || '');
-      setUserRole(getStoredValue('userRole') || 'user');
+      await refreshCurrentUser();
     }
   };
 
@@ -81,21 +94,13 @@ export const Layout: React.FC = () => {
     const result = await signup(data);
     if (result) {
       setSignupOpen(false);
-      setIsAuthenticated(true);
-      setUserName(getStoredValue('userName') || '');
-      setUserEmail(getStoredValue('userEmail') || '');
-      setUserId(getStoredValue('userId') || '');
-      setUserRole(getStoredValue('userRole') || 'user');
+      await refreshCurrentUser();
     }
   };
 
   const handleLogout = async () => {
     await logout();
-    setIsAuthenticated(false);
-    setUserName('');
-    setUserEmail('');
-    setUserId('');
-    setUserRole('');
+    clearUser();
     navigate('/');
   };
 
@@ -103,11 +108,7 @@ export const Layout: React.FC = () => {
     const result = await changeName(newName);
     if (result) {
       setChangeNameOpen(false);
-      setUserName(newName);
-      const updatedName = getStoredValue('userName');
-      if (updatedName) {
-        setUserName(updatedName);
-      }
+      await refreshCurrentUser();
     }
   };
 
@@ -115,11 +116,7 @@ export const Layout: React.FC = () => {
     const result = await changePassword(oldPassword, newPassword);
     if (result) {
       setChangePasswordOpen(false);
-      setIsAuthenticated(false);
-      setUserName('');
-      setUserEmail('');
-      setUserId('');
-      setUserRole('');
+      clearUser();
       setTimeout(() => {
         setLoginOpen(true);
       }, 1000);
@@ -154,8 +151,13 @@ export const Layout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex justify-between items-center">
             <span>{success}</span>
-            <button onClick={() => setSuccess('')} className="text-green-600 hover:text-green-800">
-              âœ•
+            <button
+              type="button"
+              aria-label="Dismiss success message"
+              onClick={() => setSuccess('')}
+              className="text-xl leading-none text-green-600 hover:text-green-800"
+            >
+              x
             </button>
           </div>
         </div>
@@ -165,8 +167,13 @@ export const Layout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
             <span>{error}</span>
-            <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
-              âœ•
+            <button
+              type="button"
+              aria-label="Dismiss error message"
+              onClick={() => setError('')}
+              className="text-xl leading-none text-red-600 hover:text-red-800"
+            >
+              x
             </button>
           </div>
         </div>

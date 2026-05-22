@@ -92,12 +92,14 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: http://localhost:8081
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
         VITE_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLIC_KEY}
     container_name: events_frontend
     restart: unless-stopped
     ports:
       - "5173:80"
+    environment:
+      NGINX_API_PROXY_PASS: ${NGINX_API_PROXY_PASS}
     depends_on:
       - backend
     networks:
