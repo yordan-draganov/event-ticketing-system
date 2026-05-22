@@ -1,28 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { ApiClient } from '../../services/api.client';
 
 interface AdminRouteProps {
   children: React.ReactNode;
 }
 
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  let userRole: string | null = null;
-  let userName: string | null = null;
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  try {
-    userRole = localStorage.getItem('userRole');
-    userName = localStorage.getItem('userName');
-  } catch (storageError) {
-    console.error('Failed to read authentication state for admin route:', storageError);
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkCurrentUser = async () => {
+      try {
+        const user = await ApiClient.getCurrentUser();
+        if (!cancelled) {
+          setIsAuthenticated(true);
+          setIsAdmin(user.role === 'admin');
+        }
+      } catch {
+        if (!cancelled) {
+          setIsAuthenticated(false);
+          setIsAdmin(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    checkCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Checking permissions...</p>
+      </div>
+    );
   }
-  
-  const isAuthenticated = !!userName;
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  if (userRole !== 'admin') {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">

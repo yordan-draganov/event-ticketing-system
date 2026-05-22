@@ -24,38 +24,6 @@ import type {
   SectionResponse
 } from '../generated/api';
 
-const safeSetStorageItem = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch (error) {
-    console.error(`Failed to save ${key} to local storage:`, error);
-  }
-};
-
-const safeRemoveStorageItem = (key: string) => {
-  try {
-    localStorage.removeItem(key);
-  } catch (error) {
-    console.error(`Failed to remove ${key} from local storage:`, error);
-  }
-};
-
-const persistAuthSession = (response: AuthResponse) => {
-  if (!response.name) return;
-
-  safeSetStorageItem('userName', response.name);
-  safeSetStorageItem('userId', response.userId || '');
-  safeSetStorageItem('userEmail', response.email || '');
-  safeSetStorageItem('userRole', response.role || 'user');
-};
-
-const clearAuthSession = () => {
-  safeRemoveStorageItem('userName');
-  safeRemoveStorageItem('userId');
-  safeRemoveStorageItem('userEmail');
-  safeRemoveStorageItem('userRole');
-};
-
 const getApis = () => {
   const config = getApiConfig();
   return {
@@ -101,18 +69,12 @@ export class ApiClient {
   static async login(data: LoginRequest): Promise<AuthResponse> {
     const { usersApi } = getApis();
     const response = await usersApi.login({ loginRequest: data });
-
-    persistAuthSession(response);
-
     return response;
   }
 
   static async signup(data: SignupRequest): Promise<AuthResponse> {
     const { usersApi } = getApis();
     const response = await usersApi.signUp({ signupRequest: data });
-
-    persistAuthSession(response);
-
     return response;
   }
 
@@ -120,16 +82,10 @@ export class ApiClient {
     try {
       const { usersApi } = getApis();
       const response = await usersApi.logout();
-
-      clearAuthSession();
-
       return response;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.log('Logout completed:', errorMessage);
-
-      clearAuthSession();
-
       return 'Logged out locally';
     }
   }
@@ -145,11 +101,6 @@ export class ApiClient {
     const response = await usersApi.changeName({ 
       changeNameRequest: { newName } 
     });
-
-    if (response.name) {
-      safeSetStorageItem('userName', response.name);
-    }
-
     return response;
   }
 
@@ -158,9 +109,6 @@ export class ApiClient {
     const response = await usersApi.changePassword({
       changePasswordRequest: { oldPassword, newPassword }
     });
-
-    clearAuthSession();
-
     return response;
   }
 
