@@ -154,6 +154,22 @@ class UserServiceTest {
     }
 
     @Test
+    void testRefreshAccessTokenSuccess() {
+        Mockito.when(tokenBlacklistService.isTokenBlacklisted("refresh-token")).thenReturn(false);
+        Mockito.when(jwtUtil.validateRefreshToken("refresh-token")).thenReturn(true);
+        Mockito.when(jwtUtil.extractUserId("refresh-token")).thenReturn(userId);
+        Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        Mockito.when(jwtUtil.generateToken(Mockito.any(UUID.class), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn("new-access-token");
+
+        AuthResponse response = userService.refreshAccessToken("refresh-token");
+
+        assertNotNull(response);
+        assertEquals("new-access-token", response.getToken());
+        assertEquals("Access token refreshed successfully", response.getMessage());
+    }
+
+    @Test
     void testDeleteUserSuccess() {
         Mockito.when(httpServletRequest.getAttribute("userName")).thenReturn("testuser");
         Mockito.when(httpServletRequest.getHeader("Authorization")).thenReturn("Bearer test-token");

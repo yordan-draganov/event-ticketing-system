@@ -411,6 +411,37 @@ export class UsersApi extends runtime.BaseAPI {
     }
 
     /**
+     * Issue a new short-lived access token from the HttpOnly refresh token cookie
+     * Refresh access token
+     */
+    async refreshRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AuthResponse>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/users/refresh`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AuthResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Issue a new short-lived access token from the HttpOnly refresh token cookie
+     * Refresh access token
+     */
+    async refresh(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AuthResponse> {
+        const response = await this.refreshRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Create a new user account
      * Register new user
      */

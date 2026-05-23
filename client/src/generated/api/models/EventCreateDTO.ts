@@ -89,18 +89,6 @@ export interface EventCreateDTO {
     endTime: string;
     /**
      * 
-     * @type {number}
-     * @memberof EventCreateDTO
-     */
-    latitude?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof EventCreateDTO
-     */
-    longitude?: number;
-    /**
-     * 
      * @type {Array<SectionRequestDTO>}
      * @memberof EventCreateDTO
      */
@@ -158,8 +146,6 @@ export function EventCreateDTOFromJSONTyped(json: any, ignoreDiscriminator: bool
         'organizer': json['organizer'] == null ? undefined : json['organizer'],
         'startTime': json['startTime'],
         'endTime': json['endTime'],
-        'latitude': json['latitude'] == null ? undefined : json['latitude'],
-        'longitude': json['longitude'] == null ? undefined : json['longitude'],
         'sections': ((json['sections'] as Array<any>).map(SectionRequestDTOFromJSON)),
     };
 }
@@ -185,8 +171,6 @@ export function EventCreateDTOToJSONTyped(value?: EventCreateDTO | null, ignoreD
         'organizer': value['organizer'],
         'startTime': value['startTime'],
         'endTime': value['endTime'],
-        'latitude': value['latitude'],
-        'longitude': value['longitude'],
         'sections': ((value['sections'] as Array<any>).map(SectionRequestDTOToJSON)),
     };
 }

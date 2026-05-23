@@ -16,8 +16,6 @@ Name | Type
 `organizer` | string
 `startTime` | string
 `endTime` | string
-`latitude` | number
-`longitude` | number
 `sections` | [Array&lt;SectionRequestDTO&gt;](SectionRequestDTO.md)
 
 ## Example
@@ -37,8 +35,6 @@ const example = {
   "organizer": null,
   "startTime": 11:00:00,
   "endTime": 12:00:00,
-  "latitude": null,
-  "longitude": null,
   "sections": null,
 } satisfies EventCreateDTO
 

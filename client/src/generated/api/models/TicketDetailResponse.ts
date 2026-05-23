@@ -171,18 +171,6 @@ export interface TicketDetailResponse {
      * @memberof TicketDetailResponse
      */
     endTime?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof TicketDetailResponse
-     */
-    latitude?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof TicketDetailResponse
-     */
-    longitude?: number;
 }
 
 
@@ -254,8 +242,6 @@ export function TicketDetailResponseFromJSONTyped(json: any, ignoreDiscriminator
         'eventOrganizer': json['eventOrganizer'] == null ? undefined : json['eventOrganizer'],
         'startTime': json['startTime'] == null ? undefined : json['startTime'],
         'endTime': json['endTime'] == null ? undefined : json['endTime'],
-        'latitude': json['latitude'] == null ? undefined : json['latitude'],
-        'longitude': json['longitude'] == null ? undefined : json['longitude'],
     };
 }
 
@@ -294,8 +280,6 @@ export function TicketDetailResponseToJSONTyped(value?: TicketDetailResponse | n
         'eventOrganizer': value['eventOrganizer'],
         'startTime': value['startTime'],
         'endTime': value['endTime'],
-        'latitude': value['latitude'],
-        'longitude': value['longitude'],
     };
 }
 

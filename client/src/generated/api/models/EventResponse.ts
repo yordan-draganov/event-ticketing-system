@@ -87,18 +87,6 @@ export interface EventResponse {
     endTime?: string;
     /**
      * 
-     * @type {number}
-     * @memberof EventResponse
-     */
-    latitude?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof EventResponse
-     */
-    longitude?: number;
-    /**
-     * 
      * @type {boolean}
      * @memberof EventResponse
      */
@@ -180,8 +168,6 @@ export function EventResponseFromJSONTyped(json: any, ignoreDiscriminator: boole
         'organizer': json['organizer'] == null ? undefined : json['organizer'],
         'startTime': json['startTime'] == null ? undefined : json['startTime'],
         'endTime': json['endTime'] == null ? undefined : json['endTime'],
-        'latitude': json['latitude'] == null ? undefined : json['latitude'],
-        'longitude': json['longitude'] == null ? undefined : json['longitude'],
         'isFinished': json['isFinished'] == null ? undefined : json['isFinished'],
         'minPrice': json['minPrice'] == null ? undefined : json['minPrice'],
         'maxPrice': json['maxPrice'] == null ? undefined : json['maxPrice'],
@@ -213,8 +199,6 @@ export function EventResponseToJSONTyped(value?: EventResponse | null, ignoreDis
         'organizer': value['organizer'],
         'startTime': value['startTime'],
         'endTime': value['endTime'],
-        'latitude': value['latitude'],
-        'longitude': value['longitude'],
         'isFinished': value['isFinished'],
         'minPrice': value['minPrice'],
         'maxPrice': value['maxPrice'],

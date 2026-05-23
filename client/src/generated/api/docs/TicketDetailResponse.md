@@ -30,8 +30,6 @@ Name | Type
 `eventOrganizer` | string
 `startTime` | string
 `endTime` | string
-`latitude` | number
-`longitude` | number
 
 ## Example
 
@@ -64,8 +62,6 @@ const example = {
   "eventOrganizer": null,
   "startTime": 11:00:00,
   "endTime": 12:00:00,
-  "latitude": null,
-  "longitude": null,
 } satisfies TicketDetailResponse
 
 console.log(example)

@@ -105,8 +105,6 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       const eventData: EventCreateDTO = {
         ...formData,
         date: new Date(formData.date),
-        latitude: 0,
-        longitude: 0,
         sections: sections
       };
 

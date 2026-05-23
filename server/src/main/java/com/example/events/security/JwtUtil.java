@@ -23,6 +23,9 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
+    @Value("${jwt.refresh-expiration}")
+    private Long refreshExpiration;
+
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
@@ -38,6 +41,10 @@ public class JwtUtil {
 
     public String extractRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
+    }
+
+    public String extractTokenType(String token) {
+        return extractClaim(token, claims -> claims.get("tokenType", String.class));
     }
 
     public Date extractExpiration(String token) {
@@ -62,25 +69,50 @@ public class JwtUtil {
     }
 
     public String generateToken(UUID userId, String username, String role) {
+        return generateAccessToken(userId, username, role);
+    }
+
+    public String generateAccessToken(UUID userId, String username, String role) {
+        return generateToken(userId, username, role, "access", expiration);
+    }
+
+    public String generateRefreshToken(UUID userId, String username, String role) {
+        return generateToken(userId, username, role, "refresh", refreshExpiration);
+    }
+
+    private String generateToken(UUID userId, String username, String role, String tokenType, Long tokenExpiration) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId.toString());
         claims.put("role", role);
-        return createToken(claims, username);
+        claims.put("tokenType", tokenType);
+        return createToken(claims, username, tokenExpiration);
     }
 
-    private String createToken(Map<String, Object> claims, String subject) {
+    private String createToken(Map<String, Object> claims, String subject, Long tokenExpiration) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(new Date(System.currentTimeMillis() + tokenExpiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Boolean validateToken(String token) {
+        return validateAccessToken(token);
+    }
+
+    public Boolean validateAccessToken(String token) {
+        return validateTokenType(token, "access");
+    }
+
+    public Boolean validateRefreshToken(String token) {
+        return validateTokenType(token, "refresh");
+    }
+
+    private Boolean validateTokenType(String token, String tokenType) {
         try {
-            return !isTokenExpired(token);
+            return !isTokenExpired(token) && tokenType.equals(extractTokenType(token));
         } catch (Exception e) {
             return false;
         }
