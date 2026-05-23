@@ -1,26 +1,26 @@
-DROP TABLE IF EXISTS reviews;
-DROP TABLE IF EXISTS tickets;
-DROP TABLE IF EXISTS events;
-DROP TABLE IF EXISTS users;
+--liquibase formatted sql
+--logicalFilePath: db/changelog/db.changelog-master.sql
 
-DROP TYPE IF EXISTS event_category_type;
-DROP TYPE IF EXISTS ticket_status_type;
-DROP TYPE IF EXISTS user_role_type;
+--changeset events:001-create-pgcrypto-extension
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+--changeset events:002-create-enum-types
 CREATE TYPE event_category_type AS ENUM ('Music', 'Technology', 'Food', 'Entertainment', 'Sports', 'Art', 'Business', 'Education');
 CREATE TYPE ticket_status_type AS ENUM ('confirmed', 'cancelled', 'refunded', 'pending');
 CREATE TYPE user_role_type AS ENUM ('user', 'admin');
 
+--changeset events:003-create-users-table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) UNIQUE NOT NULL,
     role user_role_type DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+--changeset events:004-create-events-table
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
@@ -39,6 +39,19 @@ CREATE TABLE events (
     CONSTRAINT check_time_valid CHECK (end_time > start_time)
 );
 
+--changeset events:005-create-sections-table
+CREATE TABLE sections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
+    rows_count INTEGER NOT NULL CHECK (rows_count > 0),
+    cols_count INTEGER NOT NULL CHECK (cols_count > 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+--changeset events:006-create-tickets-table
 CREATE TABLE tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -53,17 +66,7 @@ CREATE TABLE tickets (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE reviews (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    comment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (user_id, event_id)
-);
-
+--changeset events:008-create-seats-table
 CREATE TABLE seats (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
@@ -75,17 +78,7 @@ CREATE TABLE seats (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE sections (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-    rows_count INTEGER NOT NULL CHECK (rows_count > 0),
-    cols_count INTEGER NOT NULL CHECK (cols_count > 0),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
+--changeset events:009-create-indexes
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_tickets_user_id ON tickets(user_id);
@@ -95,15 +88,13 @@ CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_events_category ON events(category);
 CREATE INDEX idx_events_date ON events(date);
 CREATE INDEX idx_events_is_finished ON events(is_finished);
-CREATE INDEX idx_reviews_event_id ON reviews(event_id);
-CREATE INDEX idx_reviews_user_id ON reviews(user_id);
-CREATE INDEX idx_reviews_rating ON reviews(rating);
 CREATE INDEX idx_sections_event_id ON sections(event_id);
 CREATE INDEX idx_seats_section_id ON seats(section_id);
 CREATE INDEX idx_seats_event_id ON seats(event_id);
 CREATE INDEX idx_seats_availability ON seats(event_id, is_available);
 CREATE INDEX idx_seats_ticket_id ON seats(ticket_id);
 
+--changeset events:010-create-updated-at-function splitStatements:false
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -112,17 +103,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+--changeset events:011-create-updated-at-triggers
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_sections_updated_at BEFORE UPDATE ON sections
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
