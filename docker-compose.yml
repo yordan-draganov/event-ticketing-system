@@ -13,7 +13,6 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/database.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
     healthcheck:
@@ -53,10 +52,11 @@ services:
       DB_DRIVER: org.postgresql.Driver
       
       JPA_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
-      JPA_DDL_AUTO: update
+      JPA_DDL_AUTO: none
       JPA_SHOW_SQL: "true"
       JPA_PREFERRED_INSTANT_TYPE: TIMESTAMP
       JPA_LOB_NON_CONTEXTUAL: "true"
+      SPRING_LIQUIBASE_ENABLED: "true"
       
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
