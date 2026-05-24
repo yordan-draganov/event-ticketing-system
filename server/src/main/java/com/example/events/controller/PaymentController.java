@@ -47,6 +47,19 @@ public class PaymentController {
         );
     }
 
+    @GetMapping("/checkout/{reservationId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get checkout session", description = "Restore active checkout state for a reservation")
+    public ResponseEntity<CheckoutSessionResponse> getCheckoutSession(
+            @PathVariable UUID reservationId,
+            HttpServletRequest httpRequest) {
+
+        UUID userId = extractUserId(httpRequest);
+        logger.info("Restoring checkout session {} for user {}", reservationId, userId);
+
+        return ResponseEntity.ok(stripeService.getCheckoutSession(reservationId, userId));
+    }
+
     @PostMapping("/confirm")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Confirm payment", description = "Verify payment success and retrieve/create ticket")

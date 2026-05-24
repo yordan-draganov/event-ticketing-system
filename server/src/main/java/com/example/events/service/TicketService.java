@@ -48,6 +48,11 @@ public class TicketService {
 
     @Transactional
     public TicketResponse createTicket(TicketCreateDTO request, UUID userId) {
+        return createTicket(request, userId, null);
+    }
+
+    @Transactional
+    public TicketResponse createTicket(TicketCreateDTO request, UUID userId, UUID reservationId) {
         logger.info("Creating ticket for user {} and event {} with {} seats", userId, request.getEventId(), request.getSeatIds().size());
 
         User user = userRepository.findById(userId)
@@ -71,7 +76,7 @@ public class TicketService {
         }
 
         List<Seat> unavailableSeats = seats.stream()
-                .filter(seat -> !seat.getIsAvailable() || seat.getTicket() != null)
+                .filter(seat -> !canCreateTicketForSeat(seat, userId, reservationId))
                 .collect(Collectors.toList());
 
         if (!unavailableSeats.isEmpty()) {
@@ -106,6 +111,7 @@ public class TicketService {
         for (Seat seat : seats) {
             seat.setTicket(savedTicket);
             seat.setIsAvailable(false);
+            seat.clearReservation();
             seatRepository.save(seat);
         }
 
@@ -170,7 +176,7 @@ public class TicketService {
                         .sectionPrice(seat.getSection().getPrice())
                         .rowLabel(seat.getRowLabel())
                         .seatNumber(seat.getSeatNumber())
-                        .isAvailable(seat.getIsAvailable())
+                        .isAvailable(seat.isAvailableForPurchase())
                         .displayLabel(seat.getRowLabel() + "-" + seat.getSeatNumber())
                         .build())
                 .collect(Collectors.toList());
@@ -227,7 +233,7 @@ public class TicketService {
                         .sectionPrice(seat.getSection().getPrice())
                         .rowLabel(seat.getRowLabel())
                         .seatNumber(seat.getSeatNumber())
-                        .isAvailable(seat.getIsAvailable())
+                        .isAvailable(seat.isAvailableForPurchase())
                         .displayLabel(seat.getRowLabel() + "-" + seat.getSeatNumber())
                         .build())
                 .collect(Collectors.toList());
@@ -334,6 +340,15 @@ public class TicketService {
                         .valid(false)
                         .message("Ticket not found")
                         .build());
+    }
+
+    private boolean canCreateTicketForSeat(Seat seat, UUID userId, UUID reservationId) {
+        if (reservationId == null) {
+            return seat.isAvailableForPurchase();
+        }
+
+        return seat.getTicket() == null
+                && seat.hasReservationFor(userId, reservationId);
     }
 
 }

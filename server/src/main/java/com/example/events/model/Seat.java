@@ -42,7 +42,64 @@ public class Seat {
     @JoinColumn(name = "ticket_id")
     private Ticket ticket;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id")
+    private Reservation reservation;
+
+    @Column(name = "reserved_by")
+    private UUID reservedBy;
+
+    @Column(name = "reservation_expires_at")
+    private LocalDateTime reservationExpiresAt;
+
+    @Column(name = "reservation_payment_intent_id")
+    private String reservationPaymentIntentId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public boolean hasActiveReservation() {
+        if (reservation != null) {
+            return reservation.isActive();
+        }
+
+        return reservationExpiresAt != null && reservationExpiresAt.isAfter(LocalDateTime.now());
+    }
+
+    public boolean isAvailableForPurchase() {
+        return ticket == null
+                && !hasActiveReservation()
+                && (Boolean.TRUE.equals(isAvailable) || reservationExpiresAt != null);
+    }
+
+    public boolean hasReservationFor(UUID userId, UUID reservationId) {
+        return reservation != null
+                && reservationId != null
+                && reservationId.equals(reservation.getId())
+                && reservation.belongsTo(userId)
+                && reservation.isActive();
+    }
+
+    public void reserve(Reservation reservation) {
+        this.reservation = reservation;
+        this.reservedBy = reservation.getUser().getId();
+        this.reservationExpiresAt = reservation.getExpiresAt();
+        this.reservationPaymentIntentId = reservation.getPaymentIntentId();
+        this.isAvailable = false;
+    }
+
+    public void clearReservation() {
+        this.reservedBy = null;
+        this.reservationExpiresAt = null;
+        this.reservationPaymentIntentId = null;
+        this.reservation = null;
+    }
+
+    public void releaseReservation() {
+        clearReservation();
+        if (ticket == null) {
+            this.isAvailable = true;
+        }
+    }
 }
