@@ -94,6 +94,40 @@ CREATE INDEX idx_seats_event_id ON seats(event_id);
 CREATE INDEX idx_seats_availability ON seats(event_id, is_available);
 CREATE INDEX idx_seats_ticket_id ON seats(ticket_id);
 
+--changeset events:012-add-seat-reservations
+ALTER TABLE seats
+    ADD COLUMN reserved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    ADD COLUMN reservation_expires_at TIMESTAMP,
+    ADD COLUMN reservation_payment_intent_id VARCHAR(255);
+
+CREATE INDEX idx_seats_reservation_expires_at ON seats(reservation_expires_at);
+CREATE INDEX idx_seats_reservation_payment_intent_id ON seats(reservation_payment_intent_id);
+
+--changeset events:013-create-reservations-table
+CREATE TABLE reservations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    expires_at TIMESTAMP NOT NULL,
+    payment_intent_id VARCHAR(255) UNIQUE,
+    total_amount DECIMAL(10, 2) NOT NULL CHECK (total_amount >= 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE seats
+    ADD COLUMN reservation_id UUID REFERENCES reservations(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_reservations_user_id ON reservations(user_id);
+CREATE INDEX idx_reservations_event_id ON reservations(event_id);
+CREATE INDEX idx_reservations_status_expires_at ON reservations(status, expires_at);
+CREATE INDEX idx_reservations_payment_intent_id ON reservations(payment_intent_id);
+CREATE INDEX idx_seats_reservation_id ON seats(reservation_id);
+
+CREATE TRIGGER update_reservations_updated_at BEFORE UPDATE ON reservations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 --changeset events:010-create-updated-at-function splitStatements:false
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
