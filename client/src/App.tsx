@@ -17,7 +17,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="events/:eventId" element={<EventDetails />} />
             <Route path="my-tickets" element={<MyTickets />} />
-            <Route path="checkout" element={<Checkout />} />
+            <Route path="checkout/:reservationId" element={<Checkout />} />
             <Route 
               path="admin/dashboard" 
               element={

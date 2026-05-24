@@ -16,6 +16,7 @@ import type {
   PaymentDTO,
   PaymentResponse,
   PaymentStatusResponse,
+  CheckoutSessionResponse,
   TicketCreateDTO,
   TicketResponse,
   TicketDetailResponse,
@@ -118,6 +119,11 @@ export class ApiClient {
       paymentDTO: data 
     });
     return response;
+  }
+
+  static async getCheckoutSession(reservationId: string): Promise<CheckoutSessionResponse> {
+    const { paymentsApi } = getApis();
+    return paymentsApi.getCheckoutSession({ reservationId });
   }
 
   static async confirmPayment(paymentIntentId: string): Promise<object> {
