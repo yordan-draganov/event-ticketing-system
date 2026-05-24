@@ -9,9 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -31,7 +31,6 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Async
     public void sendTicketConfirmationEmail(TicketDetailResponse ticket, byte[] qrCodeImage) {
         try {
             logger.info("Preparing to send ticket confirmation email to: {}", ticket.getUserEmail());
@@ -55,7 +54,7 @@ public class EmailService {
             mailSender.send(message);
             logger.info("Ticket confirmation email sent successfully to: {}", ticket.getUserEmail());
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             logger.error("Failed to send email to {}: {}", ticket.getUserEmail(), e.getMessage(), e);
             throw new EmailSendException("Failed to send email", e);
         }
@@ -91,7 +90,6 @@ public class EmailService {
         return templateEngine.process("ticket-confirmation", context);
     }
 
-    @Async
     public void sendTicketCancellationEmail(String userEmail, String userName,
                                             String eventTitle, String ticketId) {
         try {
@@ -115,8 +113,9 @@ public class EmailService {
             mailSender.send(message);
             logger.info("Cancellation email sent successfully to: {}", userEmail);
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             logger.error("Failed to send cancellation email to {}: {}", userEmail, e.getMessage(), e);
+            throw new EmailSendException("Failed to send cancellation email", e);
         }
     }
 }

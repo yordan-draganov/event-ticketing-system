@@ -54,6 +54,16 @@ public class Ticket {
     @Builder.Default
     private Boolean emailSent = false;
 
+    @Column(name = "email_attempts")
+    @Builder.Default
+    private Integer emailAttempts = 0;
+
+    @Column(name = "last_email_error")
+    private String lastEmailError;
+
+    @Column(name = "checked_in_at")
+    private LocalDateTime checkedInAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

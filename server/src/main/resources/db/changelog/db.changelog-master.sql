@@ -146,3 +146,12 @@ CREATE TRIGGER update_tickets_updated_at BEFORE UPDATE ON tickets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sections_updated_at BEFORE UPDATE ON sections
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+--changeset events:014-add-ticket-email-retry-and-checkin-state
+ALTER TABLE tickets
+    ADD COLUMN IF NOT EXISTS email_attempts INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS last_email_error VARCHAR(500),
+    ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_tickets_checked_in_at ON tickets(checked_in_at);
+CREATE INDEX IF NOT EXISTS idx_tickets_email_retry ON tickets(email_sent, email_attempts);
