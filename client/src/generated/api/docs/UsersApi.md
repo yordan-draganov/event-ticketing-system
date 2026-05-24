@@ -80,12 +80,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -154,12 +154,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -220,12 +220,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -286,12 +286,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -352,12 +352,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -426,12 +426,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -500,12 +500,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -574,12 +574,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Invalid credentials |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | Login successful |  -  |
 
@@ -640,12 +640,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -706,12 +706,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -780,12 +780,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Invalid input or user already exists |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | User registered successfully |  -  |
 

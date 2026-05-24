@@ -69,12 +69,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -141,12 +141,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 

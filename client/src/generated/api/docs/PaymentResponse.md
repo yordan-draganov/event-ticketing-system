@@ -6,11 +6,13 @@
 
 Name | Type
 ------------ | -------------
+`reservationId` | string
 `clientSecret` | string
 `paymentIntentId` | string
 `amount` | number
 `currency` | string
 `status` | string
+`reservationExpiresAt` | Date
 
 ## Example
 
@@ -19,11 +21,13 @@ import type { PaymentResponse } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "reservationId": null,
   "clientSecret": null,
   "paymentIntentId": null,
   "amount": null,
   "currency": null,
   "status": null,
+  "reservationExpiresAt": null,
 } satisfies PaymentResponse
 
 console.log(example)

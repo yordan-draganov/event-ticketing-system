@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost:8081*
 | [**cancelPayment**](PaymentsApi.md#cancelpayment) | **POST** /api/payments/cancel/{paymentIntentId} | Cancel payment |
 | [**confirmPayment**](PaymentsApi.md#confirmpayment) | **POST** /api/payments/confirm | Confirm payment |
 | [**createPaymentIntent**](PaymentsApi.md#createpaymentintent) | **POST** /api/payments/create-intent | Create payment intent |
+| [**getCheckoutSession**](PaymentsApi.md#getcheckoutsession) | **GET** /api/payments/checkout/{reservationId} | Get checkout session |
 | [**getPaymentStatus**](PaymentsApi.md#getpaymentstatus) | **GET** /api/payments/status/{paymentIntentId} | Get payment status |
 
 
@@ -77,12 +78,12 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -155,12 +156,12 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -233,12 +234,90 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
+| **402** | Payment Required |  -  |
+| **200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getCheckoutSession
+
+> CheckoutSessionResponse getCheckoutSession(reservationId)
+
+Get checkout session
+
+Restore active checkout state for a reservation
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { GetCheckoutSessionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new PaymentsApi(config);
+
+  const body = {
+    // string
+    reservationId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+  } satisfies GetCheckoutSessionRequest;
+
+  try {
+    const data = await api.getCheckoutSession(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **reservationId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**CheckoutSessionResponse**](CheckoutSessionResponse.md)
+
+### Authorization
+
+[BearerAuth](../README.md#BearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `*/*`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
 | **500** | Internal Server Error |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **409** | Conflict |  -  |
+| **503** | Service Unavailable |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
@@ -311,12 +390,12 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **500** | Internal Server Error |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
 | **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **500** | Internal Server Error |  -  |
 | **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
