@@ -11,6 +11,7 @@ public interface SeatMapper {
     @Mapping(target = "sectionId", source = "section.id")
     @Mapping(target = "sectionName", source = "section.name")
     @Mapping(target = "sectionPrice", source = "section.price")
+    @Mapping(target = "isAvailable", expression = "java(seat.isAvailableForPurchase())")
     @Mapping(target = "displayLabel", expression = "java(seat.getRowLabel() + \"-\" + seat.getSeatNumber())")
     SeatResponse toResponse(Seat seat);
 }

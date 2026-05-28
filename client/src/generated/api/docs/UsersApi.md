@@ -13,6 +13,7 @@ All URIs are relative to *http://localhost:8081*
 | [**getUserRole**](UsersApi.md#getuserrole) | **GET** /api/users/role/{name} | Get user role |
 | [**login**](UsersApi.md#loginoperation) | **POST** /api/users/login | Login user |
 | [**logout**](UsersApi.md#logout) | **POST** /api/users/logout | Logout user |
+| [**refresh**](UsersApi.md#refresh) | **POST** /api/users/refresh | Refresh access token |
 | [**signUp**](UsersApi.md#signup) | **POST** /api/users/signup | Register new user |
 
 
@@ -79,11 +80,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -151,11 +154,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -215,11 +220,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -279,11 +286,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -343,11 +352,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -415,11 +426,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -487,11 +500,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -559,11 +574,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Invalid credentials |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Invalid credentials |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | Login successful |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -623,11 +640,79 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Bad Request |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
+| **200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## refresh
+
+> AuthResponse refresh()
+
+Refresh access token
+
+Issue a new short-lived access token from the HttpOnly refresh token cookie
+
+### Example
+
+```ts
+import {
+  Configuration,
+  UsersApi,
+} from '';
+import type { RefreshRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new UsersApi();
+
+  try {
+    const data = await api.refresh();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AuthResponse**](AuthResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `*/*`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **409** | Conflict |  -  |
+| **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Bad Request |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -695,11 +780,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **401** | Unauthorized |  -  |
-| **400** | Invalid input or user already exists |  -  |
-| **404** | Not Found |  -  |
 | **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
+| **404** | Not Found |  -  |
+| **401** | Unauthorized |  -  |
+| **400** | Invalid input or user already exists |  -  |
+| **503** | Service Unavailable |  -  |
 | **200** | User registered successfully |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

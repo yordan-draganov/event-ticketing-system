@@ -30,7 +30,7 @@ export const AdminDashboard: React.FC = () => {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const data = await ApiClient.getAllEvents();
+      const data = await ApiClient.getAllEventsForAdmin();
       setEvents(data);
       setError('');
     } catch (err: unknown) {
@@ -53,6 +53,21 @@ export const AdminDashboard: React.FC = () => {
   const handleDeleteEvent = (event: EventResponse) => {
     setSelectedEvent(event);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleToggleEventHidden = async (event: EventResponse) => {
+    if (!event.id) return;
+
+    try {
+      const hidden = !event.isHidden;
+      await ApiClient.setEventHidden(event.id, hidden);
+      setSuccess(hidden ? 'Event hidden from public listings' : 'Event is visible again');
+      fetchEvents();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to update event visibility'));
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const confirmDelete = async () => {
@@ -102,8 +117,9 @@ export const AdminDashboard: React.FC = () => {
 
   const stats = {
     total: events.length,
-    upcoming: events.filter(e => !e.isFinished).length,
+    upcoming: events.filter(e => !e.isFinished && !e.isHidden).length,
     finished: events.filter(e => e.isFinished).length,
+    hidden: events.filter(e => e.isHidden).length,
     totalSeats: events.reduce((sum, e) => sum + (e.totalSeats || 0), 0),
     soldSeats: events.reduce((sum, e) => sum + ((e.totalSeats || 0) - (e.availableSeats || 0)), 0),
   };
@@ -187,6 +203,7 @@ export const AdminDashboard: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Finished</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">{stats.finished}</p>
+                <p className="text-xs text-gray-500 mt-1">{stats.hidden} hidden</p>
               </div>
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,7 +359,11 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        {event.isFinished ? (
+                        {event.isHidden ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                            Hidden
+                          </span>
+                        ) : event.isFinished ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                             Finished
                           </span>
@@ -362,6 +383,23 @@ export const AdminDashboard: React.FC = () => {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
+                          </button>
+                          <button
+                            onClick={() => handleToggleEventHidden(event)}
+                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                            aria-label={`${event.isHidden ? 'Show' : 'Hide'} ${event.title}`}
+                            title={event.isHidden ? 'Show event' : 'Hide event'}
+                          >
+                            {event.isHidden ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.958 9.958 0 012.293-3.95m3.249-2.178A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.132 5.411M15 12a3 3 0 00-3-3m0 0a3 3 0 00-3 3m3-3l7-7M3 21L21 3" />
+                              </svg>
+                            )}
                           </button>
                           <button
                             onClick={() => handleDeleteEvent(event)}

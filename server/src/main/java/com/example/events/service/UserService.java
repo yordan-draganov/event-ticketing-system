@@ -119,6 +119,20 @@ public class UserService {
         return user.getRole().toString();
     }
 
+    public AuthResponse refreshAccessToken(String refreshToken) {
+        if (refreshToken == null
+                || tokenBlacklistService.isTokenBlacklisted(refreshToken)
+                || !jwtUtil.validateRefreshToken(refreshToken)) {
+            throw new InvalidTokenException("Invalid or expired refresh token");
+        }
+
+        UUID userId = jwtUtil.extractUserId(refreshToken);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return buildAuthResponse(user, "Access token refreshed successfully");
+    }
+
     public UserDTO getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));

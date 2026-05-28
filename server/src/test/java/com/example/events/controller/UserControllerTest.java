@@ -4,8 +4,10 @@ import com.example.events.DTO.*;
 import com.example.events.exception.InvalidCredentialsException;
 import com.example.events.exception.UserNotFoundException;
 import com.example.events.model.UserRole;
+import com.example.events.security.JwtUtil;
 import com.example.events.service.RedisTokenBlacklistService;
 import com.example.events.service.UserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,9 @@ class UserControllerTest {
 
     @Mock
     private RedisTokenBlacklistService tokenBlacklistService;
+
+    @Mock
+    private JwtUtil jwtUtil;
 
     @Mock
     private HttpServletRequest httpServletRequest;
@@ -104,6 +109,20 @@ class UserControllerTest {
         assertEquals("test-token", response.getBody().getToken());
         assertEquals("testuser", response.getBody().getName());
         Mockito.verify(userService).login(loginRequest);
+    }
+
+    @Test
+    void testRefreshSuccess() {
+        Cookie refreshCookie = new Cookie("refresh_token", "refresh-token");
+        Mockito.when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{refreshCookie});
+        Mockito.when(userService.refreshAccessToken("refresh-token")).thenReturn(authResponse);
+
+        ResponseEntity<AuthResponse> response = userController.refresh(httpServletRequest, httpServletResponse);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("test-token", response.getBody().getToken());
+        Mockito.verify(userService).refreshAccessToken("refresh-token");
     }
 
     @Test

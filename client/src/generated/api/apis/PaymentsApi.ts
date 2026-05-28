@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  CheckoutSessionResponse,
   ErrorResponse,
   PaymentConfirmDTO,
   PaymentDTO,
@@ -22,6 +23,8 @@ import type {
   PaymentStatusResponse,
 } from '../models/index';
 import {
+    CheckoutSessionResponseFromJSON,
+    CheckoutSessionResponseToJSON,
     ErrorResponseFromJSON,
     ErrorResponseToJSON,
     PaymentConfirmDTOFromJSON,
@@ -44,6 +47,10 @@ export interface ConfirmPaymentRequest {
 
 export interface CreatePaymentIntentRequest {
     paymentDTO: PaymentDTO;
+}
+
+export interface GetCheckoutSessionRequest {
+    reservationId: string;
 }
 
 export interface GetPaymentStatusRequest {
@@ -201,6 +208,53 @@ export class PaymentsApi extends runtime.BaseAPI {
      */
     async createPaymentIntent(requestParameters: CreatePaymentIntentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentResponse> {
         const response = await this.createPaymentIntentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Restore active checkout state for a reservation
+     * Get checkout session
+     */
+    async getCheckoutSessionRaw(requestParameters: GetCheckoutSessionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CheckoutSessionResponse>> {
+        if (requestParameters['reservationId'] == null) {
+            throw new runtime.RequiredError(
+                'reservationId',
+                'Required parameter "reservationId" was null or undefined when calling getCheckoutSession().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/payments/checkout/{reservationId}`;
+        urlPath = urlPath.replace(`{${"reservationId"}}`, encodeURIComponent(String(requestParameters['reservationId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CheckoutSessionResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Restore active checkout state for a reservation
+     * Get checkout session
+     */
+    async getCheckoutSession(requestParameters: GetCheckoutSessionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CheckoutSessionResponse> {
+        const response = await this.getCheckoutSessionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

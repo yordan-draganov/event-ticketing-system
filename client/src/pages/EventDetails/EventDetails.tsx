@@ -18,6 +18,7 @@ export const EventDetails: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState('');
 
   const fetchEventDetails = useCallback(async () => {
@@ -83,31 +84,35 @@ export const EventDetails: React.FC = () => {
     if (!eventId || selectedSeats.size === 0 || !event) return;
 
     try {
+      setCheckoutLoading(true);
       await ApiClient.getCurrentUser();
     } catch {
       alert('Please login to book tickets');
       navigate('/');
+      setCheckoutLoading(false);
       return;
     }
 
-    const selectedSeatObjects = seats.filter(seat => seat.id && selectedSeats.has(seat.id));
-    
-    const selectedSectionObj = sections.find(s => s.id === selectedSection);
-    
-    if (!selectedSectionObj) {
-      alert('Please select a section');
-      return;
-    }
+    try {
+      const payment = await ApiClient.createPaymentIntent({
+        eventId,
+        seatIds: Array.from(selectedSeats),
+      });
 
-    navigate('/checkout', {
-      state: {
-        event,
-        sections,
-        selectedSeats: selectedSeatObjects,
-        selectedSection: selectedSectionObj,
-        totalPrice: calculateTotal(sections, selectedSection, selectedSeats.size),
+      if (!payment.reservationId) {
+        throw new Error('Failed to create checkout reservation.');
       }
-    });
+
+      navigate(`/checkout/${payment.reservationId}`);
+    } catch (err) {
+      console.error('Failed to start checkout:', err);
+      alert(err instanceof Error ? err.message : 'Some of the selected seats are no longer available. Please choose different seats.');
+      if (selectedSection) {
+        fetchSeats(selectedSection);
+      }
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   if (loading) {
@@ -161,7 +166,7 @@ export const EventDetails: React.FC = () => {
         <CheckoutSummary
           total={total}
           ticketCount={selectedSeats.size}
-          onCheckout={handleBooking}
+          onCheckout={checkoutLoading ? () => undefined : handleBooking}
         />
       </div>
     </div>

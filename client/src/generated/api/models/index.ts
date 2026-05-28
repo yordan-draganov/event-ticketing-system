@@ -3,6 +3,7 @@
 export * from './AuthResponse';
 export * from './ChangeNameRequest';
 export * from './ChangePasswordRequest';
+export * from './CheckoutSessionResponse';
 export * from './ErrorResponse';
 export * from './EventCreateDTO';
 export * from './EventResponse';

@@ -10,13 +10,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tickets")
+@Table(name = "reservations")
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Ticket {
+public class Reservation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -31,41 +31,19 @@ public class Ticket {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "section_id", nullable = false)
-    private Section section;
-
-    @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalPrice;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @Builder.Default
-    private TicketStatus status = TicketStatus.confirmed;
+    private ReservationStatus status = ReservationStatus.pending;
 
-    @Column(name = "purchase_date")
-    @CreationTimestamp
-    private LocalDateTime purchaseDate;
-
-    @Column(name = "qr_code_url")
-    private String qrCodeUrl;
+    @Column(name = "expires_at", nullable = false)
+    private LocalDateTime expiresAt;
 
     @Column(name = "payment_intent_id", unique = true)
     private String paymentIntentId;
 
-    @Column(name = "email_sent")
-    @Builder.Default
-    private Boolean emailSent = false;
-
-    @Column(name = "email_attempts")
-    @Builder.Default
-    private Integer emailAttempts = 0;
-
-    @Column(name = "last_email_error")
-    private String lastEmailError;
-
-    @Column(name = "checked_in_at")
-    private LocalDateTime checkedInAt;
+    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalAmount;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -74,4 +52,12 @@ public class Ticket {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public boolean isActive() {
+        return status == ReservationStatus.pending && expiresAt.isAfter(LocalDateTime.now());
+    }
+
+    public boolean belongsTo(UUID userId) {
+        return user != null && user.getId().equals(userId);
+    }
 }

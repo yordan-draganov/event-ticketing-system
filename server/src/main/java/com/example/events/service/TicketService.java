@@ -22,8 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,11 +47,29 @@ public class TicketService {
     private final SeatRepository seatRepository;
     private final TicketMapper ticketMapper;
     private final QRCodeService qrCodeService;
-    private final EmailService emailService;
+    private final TicketEmailDispatchService ticketEmailDispatchService;
 
     @Transactional
     public TicketResponse createTicket(TicketCreateDTO request, UUID userId) {
+        return createTicket(request, userId, null);
+    }
+
+    @Transactional
+    public TicketResponse createTicket(TicketCreateDTO request, UUID userId, UUID reservationId) {
+        return createTicket(request, userId, reservationId, null);
+    }
+
+    @Transactional
+    public TicketResponse createTicket(TicketCreateDTO request, UUID userId, UUID reservationId, String paymentIntentId) {
         logger.info("Creating ticket for user {} and event {} with {} seats", userId, request.getEventId(), request.getSeatIds().size());
+
+        if (paymentIntentId != null && !paymentIntentId.isBlank()) {
+            TicketResponse existingTicket = findTicketByPaymentIntentId(paymentIntentId);
+            if (existingTicket != null) {
+                logger.info("Ticket already exists for payment intent {}", paymentIntentId);
+                return existingTicket;
+            }
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
@@ -71,7 +92,7 @@ public class TicketService {
         }
 
         List<Seat> unavailableSeats = seats.stream()
-                .filter(seat -> !seat.getIsAvailable() || seat.getTicket() != null)
+                .filter(seat -> !canCreateTicketForSeat(seat, userId, reservationId))
                 .collect(Collectors.toList());
 
         if (!unavailableSeats.isEmpty()) {
@@ -95,7 +116,9 @@ public class TicketService {
                 .section(section)
                 .totalPrice(totalPrice)
                 .status(TicketStatus.confirmed)
+                .paymentIntentId(paymentIntentId)
                 .emailSent(false)
+                .emailAttempts(0)
                 .build();
 
         Ticket savedTicket = ticketRepository.save(ticket);
@@ -106,6 +129,7 @@ public class TicketService {
         for (Seat seat : seats) {
             seat.setTicket(savedTicket);
             seat.setIsAvailable(false);
+            seat.clearReservation();
             seatRepository.save(seat);
         }
 
@@ -113,18 +137,34 @@ public class TicketService {
 
         try {
             TicketDetailResponse ticketDetail = getTicketDetailForEmail(savedTicket.getId());
-            emailService.sendTicketConfirmationEmail(ticketDetail, qrCodeImage);
-
-            savedTicket.setEmailSent(true);
-            ticketRepository.save(savedTicket);
-            logger.info("Email sent successfully for ticket: {}", savedTicket.getId());
+            runAfterCommit(() -> ticketEmailDispatchService.sendTicketConfirmationEmail(ticketDetail, qrCodeImage));
+            logger.info("Ticket confirmation email queued for ticket: {}", savedTicket.getId());
         } catch (Exception e) {
-            logger.error("Failed to send email for ticket {}: {}", savedTicket.getId(), e.getMessage());
+            savedTicket.setEmailSent(false);
+            savedTicket.setLastEmailError(e.getMessage());
+            ticketRepository.save(savedTicket);
+            logger.error("Failed to queue email for ticket {}: {}", savedTicket.getId(), e.getMessage());
         }
 
         TicketResponse response = ticketMapper.toResponse(savedTicket);
         response.setSeatCount(seats.size());
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public TicketResponse findTicketByPaymentIntentId(String paymentIntentId) {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            return null;
+        }
+
+        return ticketRepository.findByPaymentIntentId(paymentIntentId)
+                .filter(ticket -> ticket.getStatus() == TicketStatus.confirmed)
+                .map(ticket -> {
+                    TicketResponse response = ticketMapper.toResponse(ticket);
+                    response.setSeatCount(seatRepository.findByTicketId(ticket.getId()).size());
+                    return response;
+                })
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)
@@ -170,7 +210,7 @@ public class TicketService {
                         .sectionPrice(seat.getSection().getPrice())
                         .rowLabel(seat.getRowLabel())
                         .seatNumber(seat.getSeatNumber())
-                        .isAvailable(seat.getIsAvailable())
+                        .isAvailable(seat.isAvailableForPurchase())
                         .displayLabel(seat.getRowLabel() + "-" + seat.getSeatNumber())
                         .build())
                 .collect(Collectors.toList());
@@ -227,7 +267,7 @@ public class TicketService {
                         .sectionPrice(seat.getSection().getPrice())
                         .rowLabel(seat.getRowLabel())
                         .seatNumber(seat.getSeatNumber())
-                        .isAvailable(seat.getIsAvailable())
+                        .isAvailable(seat.isAvailableForPurchase())
                         .displayLabel(seat.getRowLabel() + "-" + seat.getSeatNumber())
                         .build())
                 .collect(Collectors.toList());
@@ -277,21 +317,25 @@ public class TicketService {
         ticketRepository.save(ticket);
 
         try {
-            emailService.sendTicketCancellationEmail(
-                    ticket.getUser().getEmail(),
-                    ticket.getUser().getName(),
-                    ticket.getEvent().getTitle(),
-                    ticket.getId().toString()
-            );
-            logger.info("Cancellation email sent for ticket: {}", ticketId);
+            String userEmail = ticket.getUser().getEmail();
+            String userName = ticket.getUser().getName();
+            String eventTitle = ticket.getEvent().getTitle();
+            String ticketIdText = ticket.getId().toString();
+            runAfterCommit(() -> ticketEmailDispatchService.sendTicketCancellationEmail(
+                    userEmail,
+                    userName,
+                    eventTitle,
+                    ticketIdText
+            ));
+            logger.info("Cancellation email queued for ticket: {}", ticketId);
         } catch (Exception e) {
-            logger.error("Failed to send cancellation email for ticket {}: {}", ticketId, e.getMessage());
+            logger.error("Failed to queue cancellation email for ticket {}: {}", ticketId, e.getMessage());
         }
 
         logger.info("Ticket {} cancelled successfully and {} seats released", ticketId, seats.size());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public QRCodeValidationResponse validateTicketByUrl(UUID ticketId, String token) {
         logger.info("Validating ticket {} with URL token", ticketId);
 
@@ -302,13 +346,16 @@ public class TicketService {
                     .build();
         }
 
-        return ticketRepository.findById(ticketId)
+        return ticketRepository.findByIdForUpdate(ticketId)
                 .map(ticket -> {
                     Map<String, String> ticketData = new HashMap<>();
                     ticketData.put("TICKET_ID", ticket.getId().toString());
                     ticketData.put("EVENT_ID", ticket.getEvent().getId().toString());
                     ticketData.put("EVENT", ticket.getEvent().getTitle());
                     ticketData.put("USER", ticket.getUser().getName());
+                    if (ticket.getCheckedInAt() != null) {
+                        ticketData.put("CHECKED_IN_AT", ticket.getCheckedInAt().toString());
+                    }
 
                     List<Seat> seats = seatRepository.findByTicketId(ticketId);
                     String seatInfo = seats.stream()
@@ -324,9 +371,22 @@ public class TicketService {
                                 .build();
                     }
 
+                    if (ticket.getCheckedInAt() != null) {
+                        return QRCodeValidationResponse.builder()
+                                .valid(false)
+                                .message("Ticket has already been used")
+                                .ticketData(ticketData)
+                                .build();
+                    }
+
+                    LocalDateTime checkedInAt = LocalDateTime.now();
+                    ticket.setCheckedInAt(checkedInAt);
+                    ticketRepository.save(ticket);
+                    ticketData.put("CHECKED_IN_AT", checkedInAt.toString());
+
                     return QRCodeValidationResponse.builder()
                             .valid(true)
-                            .message("QR code verified and ticket is active")
+                            .message("QR code verified and ticket checked in")
                             .ticketData(ticketData)
                             .build();
                 })
@@ -334,6 +394,29 @@ public class TicketService {
                         .valid(false)
                         .message("Ticket not found")
                         .build());
+    }
+
+    private boolean canCreateTicketForSeat(Seat seat, UUID userId, UUID reservationId) {
+        if (reservationId == null) {
+            return seat.isAvailableForPurchase();
+        }
+
+        return seat.getTicket() == null
+                && seat.hasReservationFor(userId, reservationId);
+    }
+
+    private void runAfterCommit(Runnable task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            task.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                task.run();
+            }
+        });
     }
 
 }

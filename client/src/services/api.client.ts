@@ -16,6 +16,7 @@ import type {
   PaymentDTO,
   PaymentResponse,
   PaymentStatusResponse,
+  CheckoutSessionResponse,
   TicketCreateDTO,
   TicketResponse,
   TicketDetailResponse,
@@ -43,6 +44,12 @@ export class ApiClient {
     return response;
   }
 
+  static async getAllEventsForAdmin(): Promise<EventResponse[]> {
+    const { eventsApi } = getApis();
+    const response = await eventsApi.getAllEventsForAdmin();
+    return response;
+  }
+
   static async getEventById(id: string): Promise<EventResponse> {
     const { eventsApi } = getApis();
     const response = await eventsApi.getEventById({ id });
@@ -64,6 +71,12 @@ export class ApiClient {
   static async deleteEvent(id: string): Promise<void> {
     const { eventsApi } = getApis();
     await eventsApi.deleteEvent({ id });
+  }
+
+  static async setEventHidden(id: string, hidden: boolean): Promise<EventResponse> {
+    const { eventsApi } = getApis();
+    const response = await eventsApi.setEventHidden({ id, hidden });
+    return response;
   }
 
   static async login(data: LoginRequest): Promise<AuthResponse> {
@@ -118,6 +131,11 @@ export class ApiClient {
       paymentDTO: data 
     });
     return response;
+  }
+
+  static async getCheckoutSession(reservationId: string): Promise<CheckoutSessionResponse> {
+    const { paymentsApi } = getApis();
+    return paymentsApi.getCheckoutSession({ reservationId });
   }
 
   static async confirmPayment(paymentIntentId: string): Promise<object> {

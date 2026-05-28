@@ -3,6 +3,10 @@ import type { EventResponse, EventCreateDTO, SectionRequestDTO, EventCreateDTOCa
 import { ApiClient } from '../../services/api.client';
 import { getErrorMessage } from '../../utils/errorUtils';
 
+const DEFAULT_SECTIONS: SectionRequestDTO[] = [
+  { name: 'General Admission', price: 50, rows: 10, cols: 10 }
+];
+
 interface EventFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +23,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   event
 }) => {
   const [loading, setLoading] = useState(false);
+  const [loadingSections, setLoadingSections] = useState(false);
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
@@ -34,11 +39,20 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     endTime: '',
   });
 
-  const [sections, setSections] = useState<SectionRequestDTO[]>([
-    { name: 'General Admission', price: 50, rows: 10, cols: 10 }
-  ]);
+  const [sections, setSections] = useState<SectionRequestDTO[]>(DEFAULT_SECTIONS);
 
   useEffect(() => {
+    let cancelled = false;
+
+    setError('');
+
+    if (!isOpen) {
+      setLoadingSections(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (mode === 'edit' && event) {
       setFormData({
         title: event.title || '',
@@ -52,6 +66,32 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         startTime: event.startTime || '',
         endTime: event.endTime || '',
       });
+
+      if (event.id) {
+        setLoadingSections(true);
+        ApiClient.getSectionsByEvent(event.id)
+          .then(eventSections => {
+            if (cancelled) return;
+
+            setSections(eventSections.map(section => ({
+              name: section.name || '',
+              price: section.price || 0,
+              rows: section.rowsCount || 1,
+              cols: section.colsCount || 1
+            })));
+          })
+          .catch((err: unknown) => {
+            if (cancelled) return;
+
+            setSections([]);
+            setError(getErrorMessage(err, 'Failed to load event sections'));
+          })
+          .finally(() => {
+            if (!cancelled) {
+              setLoadingSections(false);
+            }
+          });
+      }
     } else {
       setFormData({
         title: '',
@@ -65,8 +105,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         startTime: '',
         endTime: '',
       });
-      setSections([{ name: 'General Admission', price: 50, rows: 10, cols: 10 }]);
+      setSections(DEFAULT_SECTIONS);
+      setLoadingSections(false);
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [mode, event, isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -99,14 +144,23 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (loadingSections) {
+      setError('Please wait until event sections finish loading.');
+      return;
+    }
+
+    if (sections.length === 0) {
+      setError('At least one section is required.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const eventData: EventCreateDTO = {
         ...formData,
         date: new Date(formData.date),
-        latitude: 0,
-        longitude: 0,
         sections: sections
       };
 
@@ -326,11 +380,18 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                     <button
                       type="button"
                       onClick={addSection}
+                      disabled={loadingSections}
                       className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
                     >
                       + Add Section
                     </button>
                   </div>
+
+                  {loadingSections && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
+                      Loading sections...
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     {sections.map((section, index) => (
@@ -414,7 +475,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3 border-t border-gray-200">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || loadingSections}
                 className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {loading ? (

@@ -5,10 +5,19 @@ import com.example.events.exception.PaymentProcessingException;
 import com.example.events.exception.UnauthorizedException;
 import com.example.events.exception.ValidationException;
 import com.example.events.model.Event;
+import com.example.events.model.Reservation;
+import com.example.events.model.ReservationStatus;
 import com.example.events.model.Seat;
+import com.example.events.model.User;
 import com.example.events.exception.ResourceNotFoundException;
+import com.example.events.mapper.EventMapper;
+import com.example.events.mapper.SeatMapper;
+import com.example.events.mapper.SectionMapper;
 import com.example.events.repository.EventRepository;
+import com.example.events.repository.ReservationRepository;
 import com.example.events.repository.SeatRepository;
+import com.example.events.repository.SectionRepository;
+import com.example.events.repository.UserRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -22,8 +31,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,9 +53,19 @@ public class StripeService {
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
 
+    @Value("${checkout.reservation-ttl-minutes:10}")
+    private long reservationTtlMinutes;
+
     private final EventRepository eventRepository;
+    private final UserRepository userRepository;
+    private final ReservationRepository reservationRepository;
     private final SeatRepository seatRepository;
+    private final SectionRepository sectionRepository;
     private final TicketService ticketService;
+    private final PlatformTransactionManager transactionManager;
+    private final EventMapper eventMapper;
+    private final SectionMapper sectionMapper;
+    private final SeatMapper seatMapper;
 
     @PostConstruct
     void init() {
@@ -47,30 +73,11 @@ public class StripeService {
     }
 
     public PaymentResponse createPaymentIntent(UUID eventId, List<UUID> seatIds, UUID userId) {
+        Reservation reservation = null;
         try {
-            Event event = eventRepository.findById(eventId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+            reservation = reserveSeats(eventId, seatIds, userId);
 
-            List<Seat> seats = seatRepository.findAllById(seatIds);
-            if (seats.size() != seatIds.size()) {
-                throw new ResourceNotFoundException("Some seats not found");
-            }
-
-            boolean hasSeatFromDifferentEvent = seats.stream().anyMatch(seat -> seat.getEvent() == null || !seat.getEvent().getId().equals(eventId));
-            if (hasSeatFromDifferentEvent) {
-                throw new ValidationException("Some seats do not belong to the selected event");
-            }
-
-            boolean hasUnavailableSeats = seats.stream().anyMatch(seat -> !Boolean.TRUE.equals(seat.getIsAvailable()) || seat.getTicket() != null);
-            if (hasUnavailableSeats) {
-                throw new ValidationException("Some seats are no longer available");
-            }
-
-            BigDecimal totalAmount = seats.stream()
-                    .map(seat -> seat.getSection().getPrice())
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            long amountInCents = totalAmount.multiply(BigDecimal.valueOf(100)).longValue();
+            long amountInCents = reservation.getTotalAmount().multiply(BigDecimal.valueOf(100)).longValue();
 
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amountInCents)
@@ -78,6 +85,8 @@ public class StripeService {
                     .putMetadata("eventId", eventId.toString())
                     .putMetadata("userId", userId.toString())
                     .putMetadata("seatIds", seatIds.toString())
+                    .putMetadata("reservationId", reservation.getId().toString())
+                    .putMetadata("reservationExpiresAt", toUtcOffset(reservation.getExpiresAt()).toString())
                     .setAutomaticPaymentMethods(
                             PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                     .setEnabled(true)
@@ -86,16 +95,24 @@ public class StripeService {
                     .build();
 
             PaymentIntent intent = PaymentIntent.create(params);
+            attachPaymentIntentToReservation(reservation.getId(), intent.getId());
 
             return PaymentResponse.builder()
+                    .reservationId(reservation.getId())
                     .clientSecret(intent.getClientSecret())
                     .paymentIntentId(intent.getId())
-                    .amount(totalAmount)
+                    .amount(reservation.getTotalAmount())
                     .currency("USD")
+                    .status(reservation.getStatus().name())
+                    .reservationExpiresAt(toUtcOffset(reservation.getExpiresAt()))
                     .build();
 
         } catch (StripeException e) {
+            releaseReservation(reservation);
             throw new PaymentProcessingException("Stripe error: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            releaseReservation(reservation);
+            throw e;
         }
     }
 
@@ -113,29 +130,139 @@ public class StripeService {
 
             UUID eventId = UUID.fromString(intent.getMetadata().get("eventId"));
             List<UUID> seatIds = parseSeatIds(intent.getMetadata().get("seatIds"));
+            UUID reservationId = UUID.fromString(intent.getMetadata().get("reservationId"));
 
-            TicketResponse ticket = ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds);
-
-            if (ticket != null) {
-                logger.info("Ticket already exists for payment {}, returning existing ticket", paymentIntentId);
-                return ResponseEntity.ok(ticket);
-            }
-
-            logger.info("No ticket found for payment {}, creating new ticket", paymentIntentId);
-            try {
-                TicketCreateDTO ticketRequest = new TicketCreateDTO(eventId, seatIds);
-                
-                TicketResponse createdTicket = ticketService.createTicket(ticketRequest, userId);
-                logger.info("Ticket created successfully with id: {} for payment {}", createdTicket.getId(), paymentIntentId);
-                return ResponseEntity.ok(createdTicket);
-            } catch (Exception e) {
-                logger.error("Failed to create ticket for payment {}: {}", paymentIntentId, e.getMessage(), e);
-                return serverError("Failed to create ticket: " + e.getMessage());
-            }
+            TicketResponse ticket = finalizeSuccessfulPayment(paymentIntentId, userId, eventId, reservationId, seatIds);
+            logger.info("Payment {} finalized successfully with ticket {}", paymentIntentId, ticket.getId());
+            return ResponseEntity.ok(ticket);
 
         } catch (Exception e) {
             return serverError(e.getMessage());
         }
+    }
+
+    public TicketResponse finalizeSuccessfulPayment(
+            String paymentIntentId,
+            UUID userId,
+            UUID eventId,
+            UUID reservationId,
+            List<UUID> seatIds) {
+
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            Reservation reservation = reservationRepository.findByPaymentIntentIdForUpdate(paymentIntentId)
+                    .orElseThrow(() -> new ValidationException("Reservation not found for payment"));
+
+            if (!reservation.getId().equals(reservationId)) {
+                throw new ValidationException("Reservation metadata does not match payment");
+            }
+
+            if (!reservation.belongsTo(userId) || !reservation.getEvent().getId().equals(eventId)) {
+                throw new ValidationException("Payment metadata does not match reservation");
+            }
+
+            TicketResponse existingByPayment = ticketService.findTicketByPaymentIntentId(paymentIntentId);
+            if (existingByPayment != null) {
+                logger.info("Payment {} was already processed; returning existing ticket", paymentIntentId);
+                reservation.setStatus(ReservationStatus.paid);
+                reservationRepository.save(reservation);
+                return existingByPayment;
+            }
+
+            TicketResponse existingBySeats = ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds);
+            if (existingBySeats != null) {
+                logger.info("Seats for payment {} already have a ticket; returning existing ticket", paymentIntentId);
+                reservation.setStatus(ReservationStatus.paid);
+                reservationRepository.save(reservation);
+                return existingBySeats;
+            }
+
+            if (reservation.getStatus() != ReservationStatus.pending) {
+                throw new ValidationException("Reservation is not pending");
+            }
+
+            TicketCreateDTO ticketRequest = new TicketCreateDTO(eventId, seatIds);
+            TicketResponse createdTicket = ticketService.createTicket(ticketRequest, userId, reservation.getId(), paymentIntentId);
+            reservation.setStatus(ReservationStatus.paid);
+            reservationRepository.save(reservation);
+            return createdTicket;
+        });
+    }
+
+    @Transactional
+    public CheckoutSessionResponse getCheckoutSession(UUID reservationId, UUID userId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
+
+        if (!reservation.belongsTo(userId)) {
+            throw new UnauthorizedException("This reservation does not belong to you");
+        }
+
+        if (reservation.getStatus() != ReservationStatus.pending) {
+            throw new ValidationException("Reservation is not pending");
+        }
+
+        if (!reservation.isActive()) {
+            releaseReservation(reservation);
+            throw new ResponseStatusException(HttpStatus.GONE, "Reservation expired");
+        }
+
+        if (reservation.getPaymentIntentId() == null || reservation.getPaymentIntentId().isBlank()) {
+            throw new ValidationException("Reservation payment is not initialized");
+        }
+
+        List<Seat> seats = seatRepository.findByReservationIdOrderByRowLabelAscSeatNumberAsc(reservationId);
+        if (seats.isEmpty()) {
+            throw new ValidationException("Reservation has no seats");
+        }
+
+        PaymentIntent intent = retrievePaymentIntent(reservation.getPaymentIntentId());
+        Event event = reservation.getEvent();
+
+        EventResponse eventResponse = eventMapper.toResponseDTO(event);
+        List<SectionResponse> sections = sectionRepository.findByEventIdOrderByNameAsc(event.getId())
+                .stream()
+                .map(section -> {
+                    SectionResponse response = sectionMapper.toResponse(section);
+                    response.setAvailableSeats((int) seatRepository.countAvailableBySectionId(section.getId()));
+                    return response;
+                })
+                .toList();
+
+        eventResponse.setMinPrice(sections.stream()
+                .map(SectionResponse::getPrice)
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO));
+        eventResponse.setMaxPrice(sections.stream()
+                .map(SectionResponse::getPrice)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO));
+        eventResponse.setTotalSeats(sections.stream()
+                .mapToInt(section -> section.getRowsCount() * section.getColsCount())
+                .sum());
+        eventResponse.setAvailableSeats((int) seatRepository.countAvailableByEventId(event.getId()));
+        eventResponse.setSectionCount(sections.size());
+
+        SectionResponse selectedSection = sectionMapper.toResponse(seats.get(0).getSection());
+        selectedSection.setAvailableSeats((int) seatRepository.countAvailableBySectionId(selectedSection.getId()));
+
+        PaymentResponse paymentResponse = PaymentResponse.builder()
+                .reservationId(reservation.getId())
+                .clientSecret(intent.getClientSecret())
+                .paymentIntentId(intent.getId())
+                .amount(reservation.getTotalAmount())
+                .currency(intent.getCurrency() == null ? "USD" : intent.getCurrency().toUpperCase())
+                .status(reservation.getStatus().name())
+                .reservationExpiresAt(toUtcOffset(reservation.getExpiresAt()))
+                .build();
+
+        return CheckoutSessionResponse.builder()
+                .event(eventResponse)
+                .sections(sections)
+                .selectedSeats(seats.stream().map(seatMapper::toResponse).toList())
+                .selectedSection(selectedSection)
+                .totalPrice(reservation.getTotalAmount())
+                .payment(paymentResponse)
+                .build();
     }
 
     public PaymentStatusResponse getPaymentStatus(String paymentIntentId, UUID userId) {
@@ -155,14 +282,116 @@ public class StripeService {
         }
     }
 
+    private PaymentIntent retrievePaymentIntent(String paymentIntentId) {
+        try {
+            return PaymentIntent.retrieve(paymentIntentId);
+        } catch (StripeException e) {
+            throw new PaymentProcessingException(e.getMessage(), e);
+        }
+    }
+
     public void cancelPaymentIntent(String paymentIntentId, UUID userId) {
         try {
             PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
             assertPaymentOwnership(intent, userId);
             intent.cancel(PaymentIntentCancelParams.builder().build());
+            releaseReservation(paymentIntentId);
         } catch (StripeException e) {
             throw new PaymentProcessingException(e.getMessage(), e);
         }
+    }
+
+    public void releaseReservation(String paymentIntentId) {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            return;
+        }
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            reservationRepository.findByPaymentIntentIdForUpdate(paymentIntentId)
+                    .ifPresent(reservation -> {
+                        reservation.setStatus(ReservationStatus.cancelled);
+                        reservationRepository.save(reservation);
+                    });
+            seatRepository.clearReservationByPaymentIntentId(paymentIntentId);
+        });
+    }
+
+    private void releaseReservation(Reservation reservation) {
+        if (reservation == null || reservation.getId() == null) {
+            return;
+        }
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            Reservation lockedReservation = reservationRepository.findById(reservation.getId()).orElse(null);
+            if (lockedReservation != null) {
+                lockedReservation.setStatus(ReservationStatus.cancelled);
+                reservationRepository.save(lockedReservation);
+            }
+            seatRepository.clearReservationByReservationId(reservation.getId());
+        });
+    }
+
+    private Reservation reserveSeats(UUID eventId, List<UUID> seatIds, UUID userId) {
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            Event event = eventRepository.findById(eventId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+            if (event.getIsFinished()) {
+                throw new ValidationException("Cannot purchase tickets for a finished event");
+            }
+
+            List<Seat> seats = seatRepository.findByIdInAndEventId(seatIds, eventId);
+            if (seats.size() != seatIds.size()) {
+                throw new ResourceNotFoundException("Some seats not found");
+            }
+
+            boolean hasUnavailableSeats = seats.stream().anyMatch(seat -> !seat.isAvailableForPurchase());
+            if (hasUnavailableSeats) {
+                throw new ValidationException("Some seats are no longer available");
+            }
+
+            LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(reservationTtlMinutes);
+            BigDecimal totalAmount = seats.stream()
+                    .map(seat -> seat.getSection().getPrice())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Reservation reservation = Reservation.builder()
+                    .user(user)
+                    .event(event)
+                    .status(ReservationStatus.pending)
+                    .expiresAt(expiresAt)
+                    .totalAmount(totalAmount)
+                    .build();
+            Reservation savedReservation = reservationRepository.save(reservation);
+
+            for (Seat seat : seats) {
+                seat.reserve(savedReservation);
+                seatRepository.save(seat);
+            }
+
+            return savedReservation;
+        });
+    }
+
+    private void attachPaymentIntentToReservation(UUID reservationId, String paymentIntentId) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            Reservation reservation = reservationRepository.findById(reservationId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
+            reservation.setPaymentIntentId(paymentIntentId);
+            reservationRepository.save(reservation);
+            seatRepository.attachPaymentIntentToReservationSeats(reservationId, paymentIntentId);
+        });
+    }
+
+    public void markReservationPaid(UUID reservationId) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            Reservation reservation = reservationRepository.findById(reservationId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
+            reservation.setStatus(ReservationStatus.paid);
+            reservationRepository.save(reservation);
+        });
     }
 
     private void assertPaymentOwnership(PaymentIntent intent, UUID userId) {
@@ -170,6 +399,10 @@ public class StripeService {
         if (paymentUserId == null || !userId.toString().equals(paymentUserId)) {
             throw new UnauthorizedException("This payment does not belong to you");
         }
+    }
+
+    private OffsetDateTime toUtcOffset(LocalDateTime dateTime) {
+        return dateTime == null ? null : dateTime.atOffset(ZoneOffset.UTC);
     }
 
     private List<UUID> parseSeatIds(String seatIdsStr) {

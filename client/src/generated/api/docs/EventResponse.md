@@ -17,9 +17,8 @@ Name | Type
 `organizer` | string
 `startTime` | string
 `endTime` | string
-`latitude` | number
-`longitude` | number
 `isFinished` | boolean
+`isHidden` | boolean
 `minPrice` | number
 `maxPrice` | number
 `totalSeats` | number
@@ -44,9 +43,8 @@ const example = {
   "organizer": null,
   "startTime": 11:00:00,
   "endTime": 12:00:00,
-  "latitude": null,
-  "longitude": null,
   "isFinished": null,
+  "isHidden": null,
   "minPrice": null,
   "maxPrice": null,
   "totalSeats": null,

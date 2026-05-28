@@ -12,6 +12,7 @@ public interface EventMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "isFinished", ignore = true)
+    @Mapping(target = "isHidden", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Event toEntity(EventCreateDTO dto);
@@ -25,6 +26,7 @@ public interface EventMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "isFinished", ignore = true)
+    @Mapping(target = "isHidden", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDTO(EventCreateDTO dto, @MappingTarget Event event);

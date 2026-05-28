@@ -16,6 +16,9 @@ Name | Type
 `purchaseDate` | Date
 `qrCodeUrl` | string
 `emailSent` | boolean
+`emailAttempts` | number
+`lastEmailError` | string
+`checkedInAt` | Date
 `userId` | string
 `userName` | string
 `userEmail` | string
@@ -30,8 +33,6 @@ Name | Type
 `eventOrganizer` | string
 `startTime` | string
 `endTime` | string
-`latitude` | number
-`longitude` | number
 
 ## Example
 
@@ -50,6 +51,9 @@ const example = {
   "purchaseDate": null,
   "qrCodeUrl": null,
   "emailSent": null,
+  "emailAttempts": null,
+  "lastEmailError": null,
+  "checkedInAt": null,
   "userId": null,
   "userName": null,
   "userEmail": null,
@@ -64,8 +68,6 @@ const example = {
   "eventOrganizer": null,
   "startTime": 11:00:00,
   "endTime": 12:00:00,
-  "latitude": null,
-  "longitude": null,
 } satisfies TicketDetailResponse
 
 console.log(example)

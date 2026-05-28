@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import type { EventResponse, SectionResponse, SeatResponse } from '../../generated/api';
+import type { EventResponse, PaymentResponse, SectionResponse, SeatResponse } from '../../generated/api';
+import { ApiClient } from '../../services/api.client';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { CheckoutHeader } from '../../components/Checkout/CheckoutHeader';
 import { EventSummary } from '../../components/Checkout/EventSummary';
 import { TicketDetails } from '../../components/Checkout/TicketDetails';
@@ -23,50 +25,104 @@ interface CheckoutState {
 }
 
 export const Checkout: React.FC = () => {
-  const location = useLocation();
+  const { reservationId } = useParams<{ reservationId: string }>();
   const [checkoutData, setCheckoutData] = useState<CheckoutState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentResponse | null>(null);
+  const [reservationTimeLeft, setReservationTimeLeft] = useState<string | null>(null);
 
   useEffect(() => {
-    const state = location.state as CheckoutState | null;
-    
-    if (!state || !state.event || !state.selectedSeats || state.selectedSeats.length === 0) {
-      setError("Invalid checkout data. Please select seats first.");
+    let cancelled = false;
+
+    if (!reservationId) {
+      setError('Invalid checkout reservation. Please select seats first.');
       setLoading(false);
       return;
     }
 
-    const fetchSeatDetails = async () => {
+    const restoreCheckoutSession = async () => {
       try {
-        const seatsWithDetails = await Promise.all(
-          state.selectedSeats.map(async (seat) => {
-            if (!seat.id) return seat;
-            return seat;
-          })
-        );
+        const checkoutSession = await ApiClient.getCheckoutSession(reservationId);
+        const paymentResponse = checkoutSession.payment;
+
+        if (
+          !checkoutSession.event ||
+          !checkoutSession.sections ||
+          !checkoutSession.selectedSeats ||
+          !checkoutSession.selectedSection ||
+          checkoutSession.totalPrice == null ||
+          !paymentResponse
+        ) {
+          throw new Error('Failed to restore checkout session. Please select seats again.');
+        }
+
+        if (!paymentResponse.clientSecret || !paymentResponse.paymentIntentId) {
+          throw new Error('Failed to initialize checkout. Please try again.');
+        }
+
+        if (cancelled) return;
 
         setCheckoutData({
-          ...state,
-          selectedSeats: seatsWithDetails
+          event: checkoutSession.event,
+          sections: checkoutSession.sections,
+          selectedSeats: checkoutSession.selectedSeats,
+          selectedSection: checkoutSession.selectedSection,
+          totalPrice: Number(checkoutSession.totalPrice),
         });
+        setPaymentIntent(paymentResponse);
       } catch (err) {
-        console.error('Error fetching seat details:', err);
-        setCheckoutData(state);
+        if (cancelled) return;
+        console.error('Error restoring checkout session:', err);
+        setError(getErrorMessage(err, 'This checkout reservation is no longer available. Please choose seats again.'));
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchSeatDetails();
-  }, [location]);
+    restoreCheckoutSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reservationId]);
+
+  useEffect(() => {
+    if (!paymentIntent?.reservationExpiresAt) {
+      setReservationTimeLeft(null);
+      return;
+    }
+
+    const updateTimeLeft = () => {
+      const expiresAt = paymentIntent.reservationExpiresAt;
+      if (!expiresAt) return;
+
+      const diffMs = expiresAt.getTime() - Date.now();
+      if (diffMs <= 0) {
+        setReservationTimeLeft('Expired');
+        setError('Your seat reservation expired. Please select seats again.');
+        return;
+      }
+
+      const totalSeconds = Math.ceil(diffMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      setReservationTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimeLeft();
+    const intervalId = window.setInterval(updateTimeLeft, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [paymentIntent]);
 
   if (loading) {
     return <CheckoutLoading />;
   }
 
-  if (error || !checkoutData) {
+  if (error || !checkoutData || !paymentIntent) {
     return <CheckoutError error={error || "Invalid checkout data"} />;
   }
 
@@ -81,9 +137,11 @@ export const Checkout: React.FC = () => {
         <div className="mb-10 rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-blue-50 px-6 py-8 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.35)] sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-                Secure checkout
-              </span>
+              {reservationTimeLeft && (
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
+                  Reserved for {reservationTimeLeft}
+                </span>
+              )}
               <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
                 Complete your booking
               </h1>
@@ -132,7 +190,10 @@ export const Checkout: React.FC = () => {
               <Elements stripe={stripePromise}>
                 <PaymentForm
                   checkoutData={checkoutData}
-                  onSuccess={() => setPaymentSuccess(true)}
+                  paymentSetup={paymentIntent}
+                  onSuccess={() => {
+                    setPaymentSuccess(true);
+                  }}
                 />
               </Elements>
             )}

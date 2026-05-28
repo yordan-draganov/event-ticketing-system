@@ -24,6 +24,12 @@ export interface PaymentResponse {
      * @type {string}
      * @memberof PaymentResponse
      */
+    reservationId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PaymentResponse
+     */
     clientSecret?: string;
     /**
      * 
@@ -49,6 +55,12 @@ export interface PaymentResponse {
      * @memberof PaymentResponse
      */
     status?: string;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PaymentResponse
+     */
+    reservationExpiresAt?: Date;
 }
 
 /**
@@ -68,11 +80,13 @@ export function PaymentResponseFromJSONTyped(json: any, ignoreDiscriminator: boo
     }
     return {
         
+        'reservationId': json['reservationId'] == null ? undefined : json['reservationId'],
         'clientSecret': json['clientSecret'] == null ? undefined : json['clientSecret'],
         'paymentIntentId': json['paymentIntentId'] == null ? undefined : json['paymentIntentId'],
         'amount': json['amount'] == null ? undefined : json['amount'],
         'currency': json['currency'] == null ? undefined : json['currency'],
         'status': json['status'] == null ? undefined : json['status'],
+        'reservationExpiresAt': json['reservationExpiresAt'] == null ? undefined : (new Date(json['reservationExpiresAt'])),
     };
 }
 
@@ -87,11 +101,13 @@ export function PaymentResponseToJSONTyped(value?: PaymentResponse | null, ignor
 
     return {
         
+        'reservationId': value['reservationId'],
         'clientSecret': value['clientSecret'],
         'paymentIntentId': value['paymentIntentId'],
         'amount': value['amount'],
         'currency': value['currency'],
         'status': value['status'],
+        'reservationExpiresAt': value['reservationExpiresAt'] == null ? value['reservationExpiresAt'] : value['reservationExpiresAt'].toISOString(),
     };
 }
 

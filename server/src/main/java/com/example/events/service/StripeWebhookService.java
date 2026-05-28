@@ -1,6 +1,5 @@
 package com.example.events.service;
 
-import com.example.events.DTO.TicketCreateDTO;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
@@ -33,7 +32,7 @@ public class StripeWebhookService {
     @Value("${stripe.webhook.secret:}")
     private String webhookSecret;
 
-    private final TicketService ticketService;
+    private final StripeService stripeService;
 
     public ResponseEntity<String> handleWebhook(String payload, String signatureHeader) {
         if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
@@ -61,7 +60,7 @@ public class StripeWebhookService {
             switch (eventType) {
                 case "payment_intent.succeeded" -> handleSucceeded(event);
                 case "payment_intent.payment_failed" -> handleFailed(event);
-                case "payment_intent.canceled" -> logger.info("Payment intent canceled: {}", eventId);
+                case "payment_intent.canceled" -> handleCanceled(event);
                 default -> logger.info("Unhandled event type: {}", eventType);
             }
 
@@ -96,9 +95,10 @@ public class StripeWebhookService {
 
         UUID userId = parseRequiredUuid(metadata, "userId", paymentIntentId);
         UUID eventId = parseRequiredUuid(metadata, "eventId", paymentIntentId);
+        UUID reservationId = parseRequiredUuid(metadata, "reservationId", paymentIntentId);
         List<UUID> seatIds = parseSeatIds(metadata.get("seatIds"), paymentIntentId);
 
-        if (userId == null || eventId == null) {
+        if (userId == null || eventId == null || reservationId == null) {
             return;
         }
 
@@ -107,11 +107,7 @@ public class StripeWebhookService {
             return;
         }
 
-        TicketCreateDTO ticketRequest = new TicketCreateDTO();
-        ticketRequest.setEventId(eventId);
-        ticketRequest.setSeatIds(seatIds);
-
-        ticketService.createTicket(ticketRequest, userId);
+        stripeService.finalizeSuccessfulPayment(paymentIntentId, userId, eventId, reservationId, seatIds);
         logger.info("Ticket created successfully via webhook for payment: {}", paymentIntentId);
     }
 
@@ -126,6 +122,17 @@ public class StripeWebhookService {
                 : "Unknown";
 
         logger.warn("Payment failed: {} - Reason: {}", paymentIntent.getId(), errorMessage);
+        stripeService.releaseReservation(paymentIntent.getId());
+    }
+
+    private void handleCanceled(Event event) {
+        PaymentIntent paymentIntent = deserializePaymentIntent(event);
+        if (paymentIntent == null) {
+            return;
+        }
+
+        logger.info("Payment intent canceled: {}", paymentIntent.getId());
+        stripeService.releaseReservation(paymentIntent.getId());
     }
 
     private PaymentIntent deserializePaymentIntent(Event event) {

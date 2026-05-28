@@ -24,6 +24,9 @@ Name | Type
 `purchaseDate` | Date
 `qrCodeUrl` | string
 `emailSent` | boolean
+`emailAttempts` | number
+`lastEmailError` | string
+`checkedInAt` | Date
 
 ## Example
 
@@ -50,6 +53,9 @@ const example = {
   "purchaseDate": null,
   "qrCodeUrl": null,
   "emailSent": null,
+  "emailAttempts": null,
+  "lastEmailError": null,
+  "checkedInAt": null,
 } satisfies TicketResponse
 
 console.log(example)

@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/EventsApi.ts
 apis/PaymentsApi.ts
 apis/SeatsApi.ts
@@ -9,6 +8,7 @@ apis/index.ts
 docs/AuthResponse.md
 docs/ChangeNameRequest.md
 docs/ChangePasswordRequest.md
+docs/CheckoutSessionResponse.md
 docs/ErrorResponse.md
 docs/EventCreateDTO.md
 docs/EventResponse.md
@@ -35,6 +35,7 @@ index.ts
 models/AuthResponse.ts
 models/ChangeNameRequest.ts
 models/ChangePasswordRequest.ts
+models/CheckoutSessionResponse.ts
 models/ErrorResponse.ts
 models/EventCreateDTO.ts
 models/EventResponse.ts

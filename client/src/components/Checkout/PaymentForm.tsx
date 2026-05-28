@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CardCvcElement, CardExpiryElement, CardNumberElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { ApiClient } from '../../services/api.client';
-import type { EventResponse, SeatResponse } from '../../generated/api';
+import type { EventResponse, PaymentResponse, SeatResponse } from '../../generated/api';
 
 interface CheckoutState {
   event: EventResponse;
@@ -15,6 +14,7 @@ interface CheckoutState {
 
 interface PaymentFormProps {
   checkoutData: CheckoutState;
+  paymentSetup: PaymentResponse;
   onSuccess: () => void;
 }
 
@@ -63,7 +63,7 @@ const stripeFieldStyle = {
   },
 };
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSuccess }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, paymentSetup, onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -91,12 +91,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSucces
     }
 
     try {
-      const paymentResponse = await ApiClient.createPaymentIntent({
-        eventId: checkoutData.event.id || '',
-        seatIds: checkoutData.selectedSeats.map((seat) => seat.id || '').filter((id) => id !== ''),
-      });
-
-      if (!paymentResponse.clientSecret) {
+      if (!paymentSetup.clientSecret || !paymentSetup.paymentIntentId) {
         throw new Error("Failed to initialize payment. Please try again.");
       }
 
@@ -104,7 +99,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSucces
       if (!cardNumberElement) throw new Error("Card element not found");
 
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        paymentResponse.clientSecret,
+        paymentSetup.clientSecret,
         {
           payment_method: {
             card: cardNumberElement,
@@ -190,11 +185,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, onSucces
               </span>
             </div>
           </div>
-        </div>
-
-        <div className="mb-5 flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-800">
-          <LockOutlinedIcon className="text-emerald-600" fontSize="small" />
-          <p className="text-sm font-bold">Secure, encrypted checkout</p>
         </div>
 
         <div className="mb-6 space-y-4">

@@ -44,4 +44,9 @@ public class TicketResponse {
 
     private String qrCodeUrl;
     private Boolean emailSent;
+    private Integer emailAttempts;
+    private String lastEmailError;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime checkedInAt;
 }
