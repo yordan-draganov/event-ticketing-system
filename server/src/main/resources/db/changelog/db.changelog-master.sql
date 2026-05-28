@@ -103,6 +103,15 @@ ALTER TABLE seats
 CREATE INDEX idx_seats_reservation_expires_at ON seats(reservation_expires_at);
 CREATE INDEX idx_seats_reservation_payment_intent_id ON seats(reservation_payment_intent_id);
 
+--changeset events:010-create-updated-at-function splitStatements:false
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 --changeset events:013-create-reservations-table
 CREATE TABLE reservations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -128,15 +137,6 @@ CREATE INDEX idx_seats_reservation_id ON seats(reservation_id);
 CREATE TRIGGER update_reservations_updated_at BEFORE UPDATE ON reservations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
---changeset events:010-create-updated-at-function splitStatements:false
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
 --changeset events:011-create-updated-at-triggers
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -155,3 +155,20 @@ ALTER TABLE tickets
 
 CREATE INDEX IF NOT EXISTS idx_tickets_checked_in_at ON tickets(checked_in_at);
 CREATE INDEX IF NOT EXISTS idx_tickets_email_retry ON tickets(email_sent, email_attempts);
+
+--changeset events:015-add-ticket-payment-intent-id
+ALTER TABLE tickets
+    ADD COLUMN IF NOT EXISTS payment_intent_id VARCHAR(255);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_payment_intent_id ON tickets(payment_intent_id);
+
+--changeset events:016-add-event-hidden-state
+ALTER TABLE events
+    ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE;
+
+UPDATE events SET is_hidden = FALSE WHERE is_hidden IS NULL;
+
+ALTER TABLE events
+    ALTER COLUMN is_hidden SET NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_events_is_hidden ON events(is_hidden);

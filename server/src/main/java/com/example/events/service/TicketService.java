@@ -56,7 +56,20 @@ public class TicketService {
 
     @Transactional
     public TicketResponse createTicket(TicketCreateDTO request, UUID userId, UUID reservationId) {
+        return createTicket(request, userId, reservationId, null);
+    }
+
+    @Transactional
+    public TicketResponse createTicket(TicketCreateDTO request, UUID userId, UUID reservationId, String paymentIntentId) {
         logger.info("Creating ticket for user {} and event {} with {} seats", userId, request.getEventId(), request.getSeatIds().size());
+
+        if (paymentIntentId != null && !paymentIntentId.isBlank()) {
+            TicketResponse existingTicket = findTicketByPaymentIntentId(paymentIntentId);
+            if (existingTicket != null) {
+                logger.info("Ticket already exists for payment intent {}", paymentIntentId);
+                return existingTicket;
+            }
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
@@ -103,6 +116,7 @@ public class TicketService {
                 .section(section)
                 .totalPrice(totalPrice)
                 .status(TicketStatus.confirmed)
+                .paymentIntentId(paymentIntentId)
                 .emailSent(false)
                 .emailAttempts(0)
                 .build();
@@ -135,6 +149,22 @@ public class TicketService {
         TicketResponse response = ticketMapper.toResponse(savedTicket);
         response.setSeatCount(seats.size());
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public TicketResponse findTicketByPaymentIntentId(String paymentIntentId) {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            return null;
+        }
+
+        return ticketRepository.findByPaymentIntentId(paymentIntentId)
+                .filter(ticket -> ticket.getStatus() == TicketStatus.confirmed)
+                .map(ticket -> {
+                    TicketResponse response = ticketMapper.toResponse(ticket);
+                    response.setSeatCount(seatRepository.findByTicketId(ticket.getId()).size());
+                    return response;
+                })
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

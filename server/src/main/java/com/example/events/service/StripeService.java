@@ -130,32 +130,62 @@ public class StripeService {
 
             UUID eventId = UUID.fromString(intent.getMetadata().get("eventId"));
             List<UUID> seatIds = parseSeatIds(intent.getMetadata().get("seatIds"));
-            Reservation reservation = reservationRepository.findByPaymentIntentId(paymentIntentId)
-                    .orElseThrow(() -> new ValidationException("Reservation not found for payment"));
+            UUID reservationId = UUID.fromString(intent.getMetadata().get("reservationId"));
 
-            TicketResponse ticket = ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds);
-
-            if (ticket != null) {
-                logger.info("Ticket already exists for payment {}, returning existing ticket", paymentIntentId);
-                return ResponseEntity.ok(ticket);
-            }
-
-            logger.info("No ticket found for payment {}, creating new ticket", paymentIntentId);
-            try {
-                TicketCreateDTO ticketRequest = new TicketCreateDTO(eventId, seatIds);
-                
-                TicketResponse createdTicket = ticketService.createTicket(ticketRequest, userId, reservation.getId());
-                markReservationPaid(reservation.getId());
-                logger.info("Ticket created successfully with id: {} for payment {}", createdTicket.getId(), paymentIntentId);
-                return ResponseEntity.ok(createdTicket);
-            } catch (Exception e) {
-                logger.error("Failed to create ticket for payment {}: {}", paymentIntentId, e.getMessage(), e);
-                return serverError("Failed to create ticket: " + e.getMessage());
-            }
+            TicketResponse ticket = finalizeSuccessfulPayment(paymentIntentId, userId, eventId, reservationId, seatIds);
+            logger.info("Payment {} finalized successfully with ticket {}", paymentIntentId, ticket.getId());
+            return ResponseEntity.ok(ticket);
 
         } catch (Exception e) {
             return serverError(e.getMessage());
         }
+    }
+
+    public TicketResponse finalizeSuccessfulPayment(
+            String paymentIntentId,
+            UUID userId,
+            UUID eventId,
+            UUID reservationId,
+            List<UUID> seatIds) {
+
+        return new TransactionTemplate(transactionManager).execute(status -> {
+            Reservation reservation = reservationRepository.findByPaymentIntentIdForUpdate(paymentIntentId)
+                    .orElseThrow(() -> new ValidationException("Reservation not found for payment"));
+
+            if (!reservation.getId().equals(reservationId)) {
+                throw new ValidationException("Reservation metadata does not match payment");
+            }
+
+            if (!reservation.belongsTo(userId) || !reservation.getEvent().getId().equals(eventId)) {
+                throw new ValidationException("Payment metadata does not match reservation");
+            }
+
+            TicketResponse existingByPayment = ticketService.findTicketByPaymentIntentId(paymentIntentId);
+            if (existingByPayment != null) {
+                logger.info("Payment {} was already processed; returning existing ticket", paymentIntentId);
+                reservation.setStatus(ReservationStatus.paid);
+                reservationRepository.save(reservation);
+                return existingByPayment;
+            }
+
+            TicketResponse existingBySeats = ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds);
+            if (existingBySeats != null) {
+                logger.info("Seats for payment {} already have a ticket; returning existing ticket", paymentIntentId);
+                reservation.setStatus(ReservationStatus.paid);
+                reservationRepository.save(reservation);
+                return existingBySeats;
+            }
+
+            if (reservation.getStatus() != ReservationStatus.pending) {
+                throw new ValidationException("Reservation is not pending");
+            }
+
+            TicketCreateDTO ticketRequest = new TicketCreateDTO(eventId, seatIds);
+            TicketResponse createdTicket = ticketService.createTicket(ticketRequest, userId, reservation.getId(), paymentIntentId);
+            reservation.setStatus(ReservationStatus.paid);
+            reservationRepository.save(reservation);
+            return createdTicket;
+        });
     }
 
     @Transactional

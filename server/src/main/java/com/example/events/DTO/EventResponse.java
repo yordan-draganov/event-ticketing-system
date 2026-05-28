@@ -32,6 +32,7 @@ public class EventResponse {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
     private LocalTime endTime;
     private Boolean isFinished;
+    private Boolean isHidden;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
     private Integer totalSeats;

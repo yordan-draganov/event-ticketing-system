@@ -9,10 +9,12 @@ import com.example.events.model.Event;
 import com.example.events.model.Seat;
 import com.example.events.model.Section;
 import com.example.events.exception.ResourceNotFoundException;
+import com.example.events.exception.ResourceConflictException;
 import com.example.events.exception.ValidationException;
 import com.example.events.repository.EventRepository;
 import com.example.events.repository.SeatRepository;
 import com.example.events.repository.SectionRepository;
+import com.example.events.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ public class EventService {
     private final EventRepository eventRepository;
     private final SectionRepository sectionRepository;
     private final SeatRepository seatRepository;
+    private final TicketRepository ticketRepository;
     private final EventMapper eventMapper;
     private final SectionMapper sectionMapper;
 
@@ -39,6 +42,7 @@ public class EventService {
 
         Event event = eventMapper.toEntity(eventDTO);
         event.setIsFinished(false);
+        event.setIsHidden(false);
 
         Event savedEvent = eventRepository.save(event);
 
@@ -55,6 +59,13 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public List<EventResponse> getAllEvents() {
+        return eventRepository.findByIsHiddenFalse().stream()
+                .map(this::buildEventResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventResponse> getAllEventsForAdmin() {
         return eventRepository.findAll().stream()
                 .map(this::buildEventResponse)
                 .collect(Collectors.toList());
@@ -88,10 +99,22 @@ public class EventService {
 
     @Transactional
     public void deleteEvent(UUID id) {
-        if (!eventRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Event not found with id: " + id);
+        Event event = findEventById(id);
+        long ticketCount = ticketRepository.countByEventId(id);
+
+        if (ticketCount > 0) {
+            throw new ResourceConflictException(
+                    "Cannot delete event because " + ticketCount + " ticket(s) are linked to it.");
         }
-        eventRepository.deleteById(id);
+
+        eventRepository.delete(event);
+    }
+
+    @Transactional
+    public EventResponse setEventHidden(UUID id, boolean hidden) {
+        Event event = findEventById(id);
+        event.setIsHidden(hidden);
+        return buildEventResponse(eventRepository.save(event));
     }
 
     private Event findEventById(UUID id) {

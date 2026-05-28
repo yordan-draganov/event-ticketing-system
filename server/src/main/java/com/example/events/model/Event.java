@@ -55,6 +55,9 @@ public class Event {
     @Column(name = "is_finished")
     private Boolean isFinished = false;
 
+    @Column(name = "is_hidden")
+    private Boolean isHidden = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

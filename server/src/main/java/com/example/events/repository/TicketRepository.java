@@ -15,6 +15,8 @@ import java.util.UUID;
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     List<Ticket> findByUserId(UUID userId);
     List<Ticket> findByUserIdAndEventId(UUID userId, UUID eventId);
+    Optional<Ticket> findByPaymentIntentId(String paymentIntentId);
+    long countByEventId(UUID eventId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select t from Ticket t where t.id = :id")

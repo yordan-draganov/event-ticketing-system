@@ -50,6 +50,9 @@ public class Ticket {
     @Column(name = "qr_code_url")
     private String qrCodeUrl;
 
+    @Column(name = "payment_intent_id", unique = true)
+    private String paymentIntentId;
+
     @Column(name = "email_sent")
     @Builder.Default
     private Boolean emailSent = false;

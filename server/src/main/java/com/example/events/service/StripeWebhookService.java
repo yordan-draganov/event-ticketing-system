@@ -1,9 +1,5 @@
 package com.example.events.service;
 
-import com.example.events.DTO.TicketCreateDTO;
-import com.example.events.exception.ValidationException;
-import com.example.events.model.Reservation;
-import com.example.events.repository.ReservationRepository;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
@@ -36,9 +32,7 @@ public class StripeWebhookService {
     @Value("${stripe.webhook.secret:}")
     private String webhookSecret;
 
-    private final TicketService ticketService;
     private final StripeService stripeService;
-    private final ReservationRepository reservationRepository;
 
     public ResponseEntity<String> handleWebhook(String payload, String signatureHeader) {
         if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
@@ -113,23 +107,7 @@ public class StripeWebhookService {
             return;
         }
 
-        TicketCreateDTO ticketRequest = new TicketCreateDTO();
-        ticketRequest.setEventId(eventId);
-        ticketRequest.setSeatIds(seatIds);
-
-        if (ticketService.findTicketByUserEventAndSeats(userId, eventId, seatIds) != null) {
-            logger.info("Ticket already exists for payment: {}", paymentIntentId);
-            return;
-        }
-
-        Reservation reservation = reservationRepository.findByPaymentIntentId(paymentIntentId)
-                .orElseThrow(() -> new ValidationException("Reservation not found for payment"));
-        if (!reservation.getId().equals(reservationId)) {
-            throw new ValidationException("Reservation metadata does not match payment");
-        }
-
-        ticketService.createTicket(ticketRequest, userId, reservationId);
-        stripeService.markReservationPaid(reservationId);
+        stripeService.finalizeSuccessfulPayment(paymentIntentId, userId, eventId, reservationId, seatIds);
         logger.info("Ticket created successfully via webhook for payment: {}", paymentIntentId);
     }
 
