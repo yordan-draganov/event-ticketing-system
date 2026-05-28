@@ -93,6 +93,12 @@ export interface EventResponse {
     isFinished?: boolean;
     /**
      * 
+     * @type {boolean}
+     * @memberof EventResponse
+     */
+    isHidden?: boolean;
+    /**
+     * 
      * @type {number}
      * @memberof EventResponse
      */
@@ -169,6 +175,7 @@ export function EventResponseFromJSONTyped(json: any, ignoreDiscriminator: boole
         'startTime': json['startTime'] == null ? undefined : json['startTime'],
         'endTime': json['endTime'] == null ? undefined : json['endTime'],
         'isFinished': json['isFinished'] == null ? undefined : json['isFinished'],
+        'isHidden': json['isHidden'] == null ? undefined : json['isHidden'],
         'minPrice': json['minPrice'] == null ? undefined : json['minPrice'],
         'maxPrice': json['maxPrice'] == null ? undefined : json['maxPrice'],
         'totalSeats': json['totalSeats'] == null ? undefined : json['totalSeats'],
@@ -200,6 +207,7 @@ export function EventResponseToJSONTyped(value?: EventResponse | null, ignoreDis
         'startTime': value['startTime'],
         'endTime': value['endTime'],
         'isFinished': value['isFinished'],
+        'isHidden': value['isHidden'],
         'minPrice': value['minPrice'],
         'maxPrice': value['maxPrice'],
         'totalSeats': value['totalSeats'],

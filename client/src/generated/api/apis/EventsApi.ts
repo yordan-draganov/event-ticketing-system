@@ -40,6 +40,11 @@ export interface GetEventByIdRequest {
     id: string;
 }
 
+export interface SetEventHiddenRequest {
+    id: string;
+    hidden: boolean;
+}
+
 export interface UpdateEventRequest {
     id: string;
     eventCreateDTO: EventCreateDTO;
@@ -161,6 +166,37 @@ export class EventsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Retrieve list of all events, including hidden events
+     * Get all events for admin
+     */
+    async getAllEventsForAdminRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<EventResponse>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/events/admin/all`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(EventResponseFromJSON));
+    }
+
+    /**
+     * Retrieve list of all events, including hidden events
+     * Get all events for admin
+     */
+    async getAllEventsForAdmin(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<EventResponse>> {
+        const response = await this.getAllEventsForAdminRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Retrieve event details by UUID
      * Get event by ID
      */
@@ -196,6 +232,56 @@ export class EventsApi extends runtime.BaseAPI {
      */
     async getEventById(requestParameters: GetEventByIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EventResponse> {
         const response = await this.getEventByIdRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Hide or show an event in public listings
+     * Set event hidden state
+     */
+    async setEventHiddenRaw(requestParameters: SetEventHiddenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EventResponse>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling setEventHidden().'
+            );
+        }
+
+        if (requestParameters['hidden'] == null) {
+            throw new runtime.RequiredError(
+                'hidden',
+                'Required parameter "hidden" was null or undefined when calling setEventHidden().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['hidden'] != null) {
+            queryParameters['hidden'] = requestParameters['hidden'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/events/{id}/hidden`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EventResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Hide or show an event in public listings
+     * Set event hidden state
+     */
+    async setEventHidden(requestParameters: SetEventHiddenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EventResponse> {
+        const response = await this.setEventHiddenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

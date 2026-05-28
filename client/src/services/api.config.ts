@@ -9,6 +9,19 @@ const shouldRefresh = (url: string): boolean => {
     && !url.includes('/api/users/refresh');
 };
 
+const errorFromResponse = async (response: Response): Promise<Error> => {
+  try {
+    const body = await response.clone().json();
+    if (typeof body?.message === 'string') {
+      return new Error(body.message);
+    }
+  } catch {
+    return new Error(response.statusText || 'Request failed');
+  }
+
+  return new Error(response.statusText || 'Request failed');
+};
+
 export const getApiConfig = (): Configuration => {
   return new Configuration({
     basePath: API_BASE_PATH,
@@ -19,21 +32,26 @@ export const getApiConfig = (): Configuration => {
     middleware: [
       {
         post: async ({ url, init, response }) => {
-          if (response.status !== 401 || !shouldRefresh(url)) {
-            return response;
+          let finalResponse = response;
+
+          if (response.status === 401 && shouldRefresh(url)) {
+            try {
+              const refreshApi = new UsersApi(getRefreshApiConfig());
+              await refreshApi.refresh();
+              finalResponse = await fetch(url, {
+                ...init,
+                credentials: 'include',
+              });
+            } catch {
+              finalResponse = response;
+            }
           }
 
-          try {
-            const refreshApi = new UsersApi(getRefreshApiConfig());
-            await refreshApi.refresh();
-          } catch {
-            return response;
+          if (!finalResponse.ok) {
+            throw await errorFromResponse(finalResponse);
           }
 
-          return fetch(url, {
-            ...init,
-            credentials: 'include',
-          });
+          return finalResponse;
         },
       },
     ],

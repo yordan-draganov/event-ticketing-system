@@ -80,13 +80,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -154,13 +154,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -220,13 +220,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -286,13 +286,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -352,13 +352,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -426,13 +426,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -500,13 +500,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -574,13 +574,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Invalid credentials |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | Login successful |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -640,13 +640,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -706,13 +706,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Bad Request |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | OK |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -780,13 +780,13 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **409** | Conflict |  -  |
 | **500** | Internal Server Error |  -  |
+| **402** | Payment Required |  -  |
 | **404** | Not Found |  -  |
 | **401** | Unauthorized |  -  |
 | **400** | Invalid input or user already exists |  -  |
-| **409** | Conflict |  -  |
 | **503** | Service Unavailable |  -  |
-| **402** | Payment Required |  -  |
 | **200** | User registered successfully |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

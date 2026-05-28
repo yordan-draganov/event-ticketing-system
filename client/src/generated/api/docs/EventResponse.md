@@ -18,6 +18,7 @@ Name | Type
 `startTime` | string
 `endTime` | string
 `isFinished` | boolean
+`isHidden` | boolean
 `minPrice` | number
 `maxPrice` | number
 `totalSeats` | number
@@ -43,6 +44,7 @@ const example = {
   "startTime": 11:00:00,
   "endTime": 12:00:00,
   "isFinished": null,
+  "isHidden": null,
   "minPrice": null,
   "maxPrice": null,
   "totalSeats": null,

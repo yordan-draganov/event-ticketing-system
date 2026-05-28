@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CardCvcElement, CardExpiryElement, CardNumberElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { ApiClient } from '../../services/api.client';
 import type { EventResponse, PaymentResponse, SeatResponse } from '../../generated/api';
@@ -186,11 +185,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, paymentS
               </span>
             </div>
           </div>
-        </div>
-
-        <div className="mb-5 flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-800">
-          <LockOutlinedIcon className="text-emerald-600" fontSize="small" />
-          <p className="text-sm font-bold">Secure, encrypted checkout</p>
         </div>
 
         <div className="mb-6 space-y-4">

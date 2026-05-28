@@ -16,6 +16,9 @@ Name | Type
 `purchaseDate` | Date
 `qrCodeUrl` | string
 `emailSent` | boolean
+`emailAttempts` | number
+`lastEmailError` | string
+`checkedInAt` | Date
 `userId` | string
 `userName` | string
 `userEmail` | string
@@ -48,6 +51,9 @@ const example = {
   "purchaseDate": null,
   "qrCodeUrl": null,
   "emailSent": null,
+  "emailAttempts": null,
+  "lastEmailError": null,
+  "checkedInAt": null,
   "userId": null,
   "userName": null,
   "userEmail": null,

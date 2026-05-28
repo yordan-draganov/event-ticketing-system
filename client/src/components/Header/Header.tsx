@@ -105,6 +105,33 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
         </div>
+
+        {isAuthenticated && (
+          <div className="md:hidden border-t border-gray-100 py-2">
+            <div className="flex gap-2 overflow-x-auto">
+              <button
+                onClick={onHomeClick}
+                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+              >
+                Events
+              </button>
+              <button
+                onClick={onMyTicketsClick}
+                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+              >
+                My Tickets
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={onAdminDashboardClick}
+                  className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                >
+                  Admin
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
     </header>
   );

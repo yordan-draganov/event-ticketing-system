@@ -137,11 +137,8 @@ export const Checkout: React.FC = () => {
         <div className="mb-10 rounded-[2rem] border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-blue-50 px-6 py-8 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.35)] sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-                Secure checkout
-              </span>
               {reservationTimeLeft && (
-                <span className="ml-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
                   Reserved for {reservationTimeLeft}
                 </span>
               )}
