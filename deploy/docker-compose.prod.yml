@@ -62,8 +62,11 @@ services:
       CHECKOUT_RESERVATION_TTL_MINUTES: ${CHECKOUT_RESERVATION_TTL_MINUTES}
       CHECKOUT_RESERVATION_CLEANUP_DELAY_MS: ${CHECKOUT_RESERVATION_CLEANUP_DELAY_MS}
       HMAC_SECRET: ${HMAC_SECRET}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM:-${MAIL_USERNAME}}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
@@ -81,6 +84,7 @@ services:
     networks:
       - app
       - data
+      - egress
 
   db:
     image: postgres:16-alpine
@@ -122,6 +126,8 @@ networks:
   data:
     driver: bridge
     internal: true
+  egress:
+    driver: bridge
 
 volumes:
   caddy_data:
