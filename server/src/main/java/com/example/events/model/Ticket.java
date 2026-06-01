@@ -47,9 +47,6 @@ public class Ticket {
     @CreationTimestamp
     private LocalDateTime purchaseDate;
 
-    @Column(name = "qr_code_url")
-    private String qrCodeUrl;
-
     @Column(name = "payment_intent_id", unique = true)
     private String paymentIntentId;
 

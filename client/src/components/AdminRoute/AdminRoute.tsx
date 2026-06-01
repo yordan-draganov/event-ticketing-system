@@ -16,10 +16,10 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
     const checkCurrentUser = async () => {
       try {
-        const user = await ApiClient.getCurrentUser();
+        const user = await ApiClient.getOptionalCurrentUser();
         if (!cancelled) {
-          setIsAuthenticated(true);
-          setIsAdmin(user.role === 'admin');
+          setIsAuthenticated(Boolean(user));
+          setIsAdmin(user?.role === 'admin');
         }
       } catch {
         if (!cancelled) {

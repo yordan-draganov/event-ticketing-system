@@ -39,8 +39,7 @@ public class UserService {
             throw new UserExistsException("User with name '" + request.getName() + "' already exists");
         }
 
-        UserRole role = request.getRole() != null ? request.getRole() : UserRole.user;
-        request.setRole(role);
+        request.setRole(UserRole.user);
 
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));

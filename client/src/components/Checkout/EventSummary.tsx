@@ -1,6 +1,7 @@
 import React from 'react';
 import type { EventResponse } from '../../generated/api';
 import { formatDateLong, formatTime } from '../../utils/dateUtils';
+import { EVENT_IMAGE_FALLBACKS, getEventImageSrc } from '../../utils/imageUtils';
 
 interface EventSummaryProps {
   event: EventResponse;
@@ -12,11 +13,11 @@ export const EventSummary: React.FC<EventSummaryProps> = ({ event }) => {
       <h2 className="text-xl font-bold text-gray-900 mb-6">Event Details</h2>
       <div className="flex gap-6">
         <img
-          src={event.image || 'https://placehold.co/200x200?text=Event'}
+          src={getEventImageSrc(event.image, EVENT_IMAGE_FALLBACKS.summary)}
           alt={event.title}
           className="w-32 h-32 object-cover rounded-xl"
           onError={(e) => {
-            e.currentTarget.src = 'https://placehold.co/200x200?text=Event';
+            e.currentTarget.src = EVENT_IMAGE_FALLBACKS.summary;
           }}
         />
         <div className="flex-1">

@@ -1,3 +1,4 @@
 .idea
 .env
 example.sql
+config/env/.env

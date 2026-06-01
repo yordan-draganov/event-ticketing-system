@@ -46,8 +46,8 @@ export const EventDetails: React.FC = () => {
     try {
       const seatsData = await ApiClient.getSeatsBySection(sectionId);
       setSeats(seatsData);
-    } catch (err) {
-      console.error('Failed to load seats:', err);
+    } catch {
+      setError('Failed to load seats. Please refresh the page.');
     }
   }, []);
 
@@ -105,7 +105,6 @@ export const EventDetails: React.FC = () => {
 
       navigate(`/checkout/${payment.reservationId}`);
     } catch (err) {
-      console.error('Failed to start checkout:', err);
       alert(err instanceof Error ? err.message : 'Some of the selected seats are no longer available. Please choose different seats.');
       if (selectedSection) {
         fetchSeats(selectedSection);

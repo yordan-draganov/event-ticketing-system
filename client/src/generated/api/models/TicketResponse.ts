@@ -117,12 +117,6 @@ export interface TicketResponse {
     purchaseDate?: Date;
     /**
      * 
-     * @type {string}
-     * @memberof TicketResponse
-     */
-    qrCodeUrl?: string;
-    /**
-     * 
      * @type {boolean}
      * @memberof TicketResponse
      */
@@ -193,7 +187,6 @@ export function TicketResponseFromJSONTyped(json: any, ignoreDiscriminator: bool
         'totalPrice': json['totalPrice'] == null ? undefined : json['totalPrice'],
         'status': json['status'] == null ? undefined : json['status'],
         'purchaseDate': json['purchaseDate'] == null ? undefined : (new Date(json['purchaseDate'])),
-        'qrCodeUrl': json['qrCodeUrl'] == null ? undefined : json['qrCodeUrl'],
         'emailSent': json['emailSent'] == null ? undefined : json['emailSent'],
         'emailAttempts': json['emailAttempts'] == null ? undefined : json['emailAttempts'],
         'lastEmailError': json['lastEmailError'] == null ? undefined : json['lastEmailError'],
@@ -228,7 +221,6 @@ export function TicketResponseToJSONTyped(value?: TicketResponse | null, ignoreD
         'totalPrice': value['totalPrice'],
         'status': value['status'],
         'purchaseDate': value['purchaseDate'] == null ? value['purchaseDate'] : value['purchaseDate'].toISOString(),
-        'qrCodeUrl': value['qrCodeUrl'],
         'emailSent': value['emailSent'],
         'emailAttempts': value['emailAttempts'],
         'lastEmailError': value['lastEmailError'],

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { EventResponse } from '../../generated/api';
 import { formatDateShort } from '../../utils/dateUtils';
+import { EVENT_IMAGE_FALLBACKS, getEventImageSrc } from '../../utils/imageUtils';
 
 interface EventCardProps {
   event: EventResponse;
@@ -15,11 +16,11 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onViewDetails }) =>
     >
       <div className="relative h-52 overflow-hidden">
         <img
-          src={event.image || 'https://placehold.co/400x200?text=Event'}
+          src={getEventImageSrc(event.image, EVENT_IMAGE_FALLBACKS.card)}
           alt={event.title}
           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
           onError={(e) => {
-            e.currentTarget.src = 'https://placehold.co/400x200?text=Event';
+            e.currentTarget.src = EVENT_IMAGE_FALLBACKS.card;
           }}
         />
         <div className="absolute top-4 left-4">

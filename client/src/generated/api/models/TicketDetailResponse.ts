@@ -77,12 +77,6 @@ export interface TicketDetailResponse {
     purchaseDate?: Date;
     /**
      * 
-     * @type {string}
-     * @memberof TicketDetailResponse
-     */
-    qrCodeUrl?: string;
-    /**
-     * 
      * @type {boolean}
      * @memberof TicketDetailResponse
      */
@@ -244,7 +238,6 @@ export function TicketDetailResponseFromJSONTyped(json: any, ignoreDiscriminator
         'status': json['status'] == null ? undefined : json['status'],
         'seats': json['seats'] == null ? undefined : ((json['seats'] as Array<any>).map(SeatResponseFromJSON)),
         'purchaseDate': json['purchaseDate'] == null ? undefined : (new Date(json['purchaseDate'])),
-        'qrCodeUrl': json['qrCodeUrl'] == null ? undefined : json['qrCodeUrl'],
         'emailSent': json['emailSent'] == null ? undefined : json['emailSent'],
         'emailAttempts': json['emailAttempts'] == null ? undefined : json['emailAttempts'],
         'lastEmailError': json['lastEmailError'] == null ? undefined : json['lastEmailError'],
@@ -285,7 +278,6 @@ export function TicketDetailResponseToJSONTyped(value?: TicketDetailResponse | n
         'status': value['status'],
         'seats': value['seats'] == null ? undefined : ((value['seats'] as Array<any>).map(SeatResponseToJSON)),
         'purchaseDate': value['purchaseDate'] == null ? value['purchaseDate'] : value['purchaseDate'].toISOString(),
-        'qrCodeUrl': value['qrCodeUrl'],
         'emailSent': value['emailSent'],
         'emailAttempts': value['emailAttempts'],
         'lastEmailError': value['lastEmailError'],

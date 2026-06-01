@@ -1,7 +1,6 @@
 package com.example.events.controller;
 
 import com.example.events.DTO.*;
-import com.example.events.exception.UserNotFoundException;
 import com.example.events.exception.UnauthorizedException;
 import com.example.events.security.JwtUtil;
 import com.example.events.service.UserService;
@@ -142,6 +141,7 @@ public class UserController {
     }
 
     @GetMapping("/role/{name}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get user role", description = "Retrieve user role by username")
     public ResponseEntity<String> getUserRole(@PathVariable String name) {
         String role = userService.getUserRole(name);
@@ -167,13 +167,12 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get current user", description = "Get authenticated user's profile", 
                security = @SecurityRequirement(name = "Bearer Authentication"))
     public ResponseEntity<UserDTO> getCurrentUser(HttpServletRequest request) {
         String userName = (String) request.getAttribute("userName");
         if (userName == null) {
-            throw new UserNotFoundException("User not authenticated");
+            return ResponseEntity.noContent().build();
         }
 
         String userIdStr = (String) request.getAttribute("userId");

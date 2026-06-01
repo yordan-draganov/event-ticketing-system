@@ -32,7 +32,6 @@ public class TicketDetailResponse {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime purchaseDate;
 
-    private String qrCodeUrl;
     private Boolean emailSent;
     private Integer emailAttempts;
     private String lastEmailError;

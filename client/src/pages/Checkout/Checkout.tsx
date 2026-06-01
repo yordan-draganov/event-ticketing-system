@@ -14,7 +14,8 @@ import { PaymentSuccess } from '../../components/Checkout/PaymentSuccess';
 import { CheckoutLoading } from '../../components/Checkout/CheckoutLoading';
 import { CheckoutError } from '../../components/Checkout/CheckoutError';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : Promise.resolve(null);
 
 interface CheckoutState {
   event: EventResponse;
@@ -74,7 +75,6 @@ export const Checkout: React.FC = () => {
         setPaymentIntent(paymentResponse);
       } catch (err) {
         if (cancelled) return;
-        console.error('Error restoring checkout session:', err);
         setError(getErrorMessage(err, 'This checkout reservation is no longer available. Please choose seats again.'));
       } finally {
         if (!cancelled) {
