@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { EventResponse } from '../../generated/api';
 import { formatDateLong, formatTime } from '../../utils/dateUtils';
+import { EVENT_IMAGE_FALLBACKS, getEventImageSrc } from '../../utils/imageUtils';
 
 interface EventInfoProps {
   event: EventResponse;
@@ -31,11 +32,11 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-10 items-start">
             <div className="relative group order-1">
               <img
-                src={event.image || 'https://placehold.co/600x400?text=Event'}
+                src={getEventImageSrc(event.image, EVENT_IMAGE_FALLBACKS.detail)}
                 alt={event.title}
                 className="w-full h-64 sm:h-80 md:h-96 lg:h-[400px] object-cover rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/600x400?text=Event';
+                  e.currentTarget.src = EVENT_IMAGE_FALLBACKS.detail;
                 }}
               />
               <div className="absolute top-3 left-3 sm:top-4 sm:left-4">

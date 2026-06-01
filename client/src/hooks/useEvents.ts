@@ -20,7 +20,6 @@ export const useEvents = () => {
       setEvents(data);
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to fetch events'));
-      console.error('Error fetching events:', err);
     } finally {
       setLoading(false);
     }

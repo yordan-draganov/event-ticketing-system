@@ -5,6 +5,7 @@ import { formatDateShort, formatTime } from '../../utils/dateUtils';
 import { EventFormModal } from '../../components/EventFormModal/EventFormModal';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal/DeleteConfirmModal';
 import { getErrorMessage } from '../../utils/errorUtils';
+import { EVENT_IMAGE_FALLBACKS, getEventImageSrc } from '../../utils/imageUtils';
 
 type SortOption = 'date' | 'title' | 'availability';
 
@@ -313,13 +314,14 @@ export const AdminDashboard: React.FC = () => {
                     <tr key={event.id} className="hover:bg-gray-50 transition">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          {event.image && (
-                            <img 
-                              src={event.image} 
-                              alt="" 
-                              className="w-12 h-12 rounded-lg object-cover hidden sm:block"
-                            />
-                          )}
+                          <img
+                            src={getEventImageSrc(event.image, EVENT_IMAGE_FALLBACKS.thumbnail)}
+                            alt={event.title ? `${event.title} event image` : 'Event image'}
+                            className="w-12 h-12 rounded-lg object-cover hidden sm:block"
+                            onError={(e) => {
+                              e.currentTarget.src = EVENT_IMAGE_FALLBACKS.thumbnail;
+                            }}
+                          />
                           <div className="min-w-0 flex-1">
                             <h3 className="text-sm font-semibold text-gray-900 truncate">{event.title}</h3>
                             <p className="text-xs text-gray-500 truncate">{event.category}</p>

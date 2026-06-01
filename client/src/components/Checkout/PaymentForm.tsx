@@ -82,8 +82,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, paymentS
 
     try {
       await ApiClient.getCurrentUser();
-    } catch (authError) {
-      console.error('Failed to verify authentication before payment:', authError);
+    } catch {
       setError("Please log in to complete your purchase.");
       setTimeout(() => navigate('/'), 2000);
       setLoading(false);
@@ -113,12 +112,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, paymentS
 
       if (paymentIntent?.status === 'succeeded' && paymentIntent.id) {
         try {
-          console.log('Confirming payment with backend, paymentIntentId:', paymentIntent.id);
-          console.log('Event ID:', checkoutData.event.id);
-          console.log('Seat IDs:', checkoutData.selectedSeats.map((seat) => seat.id).filter((id) => id));
-
-          const confirmResponse = await ApiClient.confirmPayment(paymentIntent.id);
-          console.log('Payment confirmed, ticket creation response:', confirmResponse);
+          await ApiClient.confirmPayment(paymentIntent.id);
 
           await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -128,7 +122,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, paymentS
             navigate('/', { state: { paymentSuccess: true } });
           }, 3000);
         } catch (confirmErr: unknown) {
-          console.error('Error confirming payment and creating tickets:', confirmErr);
           const message = extractErrorMessage(confirmErr, "Payment succeeded, but ticket creation failed. Please contact support.");
           setError(message);
           return;
@@ -137,7 +130,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ checkoutData, paymentS
         throw new Error("Payment was not completed successfully.");
       }
     } catch (err: unknown) {
-      console.error('Payment error:', err);
       const message = extractErrorMessage(err, "An unexpected error occurred. Please try again.");
       setError(message);
     } finally {

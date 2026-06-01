@@ -335,7 +335,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                         Image URL
                       </label>
                       <input
-                        type="url"
+                        type="text"
+                        inputMode="url"
                         id="image"
                         name="image"
                         value={formData.image}
