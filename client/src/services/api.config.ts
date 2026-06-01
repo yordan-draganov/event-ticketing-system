@@ -9,6 +9,20 @@ const shouldRefresh = (url: string): boolean => {
     && !url.includes('/api/users/refresh');
 };
 
+const isCurrentUserLookup = (url: string): boolean => {
+  return url.includes('/api/users/me');
+};
+
+const shouldAttemptRefresh = (url: string, response: Response): boolean => {
+  if (!shouldRefresh(url)) {
+    return false;
+  }
+
+  return response.status === 401
+    || response.status === 403
+    || (response.status === 204 && isCurrentUserLookup(url));
+};
+
 const errorFromResponse = async (response: Response): Promise<Error> => {
   try {
     const body = await response.clone().json();
@@ -34,7 +48,7 @@ export const getApiConfig = (): Configuration => {
         post: async ({ url, init, response }) => {
           let finalResponse = response;
 
-          if (response.status === 401 && shouldRefresh(url)) {
+          if (shouldAttemptRefresh(url, response)) {
             try {
               const refreshApi = new UsersApi(getRefreshApiConfig());
               await refreshApi.refresh();

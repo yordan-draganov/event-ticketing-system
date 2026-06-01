@@ -172,3 +172,7 @@ ALTER TABLE events
     ALTER COLUMN is_hidden SET NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_events_is_hidden ON events(is_hidden);
+
+--changeset events:017-remove-unused-ticket-qr-code-url
+ALTER TABLE tickets
+    DROP COLUMN IF EXISTS qr_code_url;

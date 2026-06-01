@@ -64,9 +64,13 @@ export const Layout: React.FC = () => {
 
     const loadCurrentUser = async () => {
       try {
-        const user = await ApiClient.getCurrentUser();
+        const user = await ApiClient.getOptionalCurrentUser();
         if (!cancelled) {
-          applyUser(user);
+          if (user) {
+            applyUser(user);
+          } else {
+            clearUser();
+          }
         }
       } catch {
         if (!cancelled) {

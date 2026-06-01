@@ -22,7 +22,6 @@ Name | Type
 `totalPrice` | number
 `status` | string
 `purchaseDate` | Date
-`qrCodeUrl` | string
 `emailSent` | boolean
 `emailAttempts` | number
 `lastEmailError` | string
@@ -51,7 +50,6 @@ const example = {
   "totalPrice": null,
   "status": null,
   "purchaseDate": null,
-  "qrCodeUrl": null,
   "emailSent": null,
   "emailAttempts": null,
   "lastEmailError": null,

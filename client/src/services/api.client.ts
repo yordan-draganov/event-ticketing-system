@@ -96,17 +96,31 @@ export class ApiClient {
       const { usersApi } = getApis();
       const response = await usersApi.logout();
       return response;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log('Logout completed:', errorMessage);
+    } catch {
       return 'Logged out locally';
     }
   }
 
   static async getCurrentUser(): Promise<UserDTO> {
     const { usersApi } = getApis();
-    const response = await usersApi.getCurrentUser();
-    return response;
+    const response = await usersApi.getCurrentUserRaw();
+
+    if (response.raw.status === 204) {
+      throw new Error('User not authenticated');
+    }
+
+    return response.value();
+  }
+
+  static async getOptionalCurrentUser(): Promise<UserDTO | null> {
+    const { usersApi } = getApis();
+    const response = await usersApi.getCurrentUserRaw();
+
+    if (response.raw.status === 204) {
+      return null;
+    }
+
+    return response.value();
   }
 
   static async changeName(newName: string): Promise<AuthResponse> {

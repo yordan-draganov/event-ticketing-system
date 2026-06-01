@@ -14,7 +14,6 @@ Name | Type
 `status` | string
 `seats` | [Array&lt;SeatResponse&gt;](SeatResponse.md)
 `purchaseDate` | Date
-`qrCodeUrl` | string
 `emailSent` | boolean
 `emailAttempts` | number
 `lastEmailError` | string
@@ -49,7 +48,6 @@ const example = {
   "status": null,
   "seats": null,
   "purchaseDate": null,
-  "qrCodeUrl": null,
   "emailSent": null,
   "emailAttempts": null,
   "lastEmailError": null,
