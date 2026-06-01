@@ -81,6 +81,7 @@ services:
     networks:
       - app
       - data
+      - egress
 
   db:
     image: postgres:16-alpine
@@ -122,6 +123,8 @@ networks:
   data:
     driver: bridge
     internal: true
+  egress:
+    driver: bridge
 
 volumes:
   caddy_data:

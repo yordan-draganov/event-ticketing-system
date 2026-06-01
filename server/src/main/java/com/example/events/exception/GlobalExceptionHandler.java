@@ -179,10 +179,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(PaymentProcessingException.class)
-    @ResponseStatus(HttpStatus.PAYMENT_REQUIRED)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public @ResponseBody ErrorResponse handlePaymentProcessingException(
             PaymentProcessingException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.PAYMENT_REQUIRED, "Payment Required",
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Payment Service Unavailable",
                 ex.getMessage(), request.getRequestURI());
     }
 
